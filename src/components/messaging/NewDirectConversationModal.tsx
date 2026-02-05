@@ -55,32 +55,40 @@ export function NewDirectConversationModal({
 
   const loadUsers = async () => {
     try {
-      // Alguns ambientes usam `user_profiles.id = auth.uid()`, outros guardam o auth id em `user_id`.
-      // Para evitar quebra por schema drift, tentamos com `user_id` e fazemos fallback para `id`.
-      let data: any[] | null = null;
-
-      const attemptWithUserId = await supabase
+      console.log('🔍 Buscando usuários...');
+      console.log('🔍 FilterType:', filterType);
+      console.log('🔍 CurrentUserId:', currentUserId);
+      
+      // Buscar todos os perfis ativos
+      const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, user_id, full_name, email, user_type, avatar_url, avatar')
+        .select('id, user_id, full_name, email, user_type, avatar_url, avatar, is_active')
+        .eq('is_active', true)
         .order('full_name');
 
-      if (!attemptWithUserId.error) {
-        data = attemptWithUserId.data || [];
-      } else {
-        const attemptWithId = await supabase
-          .from('user_profiles')
-          .select('id, full_name, email, user_type, avatar_url, avatar')
-          .order('full_name');
-        if (attemptWithId.error) throw attemptWithId.error;
-        data = attemptWithId.data || [];
+      if (error) {
+        console.error('❌ Erro ao buscar user_profiles:', error);
+        throw error;
       }
 
+      console.log('📊 Dados recebidos:', data);
+
+      let filteredData = data || [];
+
+      // Aplicar filtro de tipo
       if (filterType === 'clients') {
-        data = (data || []).filter((u) => String((u as any)?.user_type || '') === 'client');
+        filteredData = filteredData.filter((u) => String(u?.user_type || '') === 'client');
       } else if (filterType === 'team') {
-        data = (data || []).filter((u) => String((u as any)?.user_type || '') !== 'client');
+        // Para equipe, pegar todos que NÃO são cliente (employee, admin, super_admin, etc)
+        filteredData = filteredData.filter((u) => {
+          const userType = String(u?.user_type || '').toLowerCase();
+          return userType !== 'client' && userType !== '';
+        });
       }
-      const normalized: UserProfile[] = (data || [])
+
+      console.log('📊 Após filtro:', filteredData);
+
+      const normalized: UserProfile[] = filteredData
         .map((u: any) => {
           const authId = u?.user_id ? String(u.user_id) : u?.id ? String(u.id) : null;
           if (!authId) return null;
@@ -94,9 +102,12 @@ export function NewDirectConversationModal({
         })
         .filter(Boolean) as UserProfile[];
 
-      setUsers(normalized.filter((u) => u.id !== currentUserId));
+      const finalUsers = normalized.filter((u) => u.id !== currentUserId);
+      console.log('✅ Usuários finais:', finalUsers);
+      
+      setUsers(finalUsers);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      console.error('❌ Erro ao carregar usuários:', error);
     }
   };
 

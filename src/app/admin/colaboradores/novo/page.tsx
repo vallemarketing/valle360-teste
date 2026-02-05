@@ -212,11 +212,18 @@ export default function NovoColaboradorPage() {
     // Enviar email para o email PESSOAL do colaborador
     let emailEnviado = false
     let emailProvider = ''
-    let fallbackCredentials = null
+    let fallbackCredentials = {
+      emailCorporativo,
+      emailPessoal,
+      senha,
+      mailtoUrl: '',
+    }
     
     try {
-      // 1) Mailto como principal (manual)
-      const manualResponse = await fetch('/api/send-welcome-email', {
+      console.log('📤 Tentando enviar email de boas-vindas...')
+      
+      // Tentar envio automático direto via webhook
+      const autoResponse = await fetch('/api/send-welcome-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,46 +233,42 @@ export default function NovoColaboradorPage() {
           senha,
           areasTexto,
           tipo: 'colaborador',
-          mode: 'manual',
+          mode: 'auto',
         })
       })
-      const manualResult = await manualResponse.json().catch(() => null)
-      if (manualResult?.mailtoUrl) {
-        const win = window.open(manualResult.mailtoUrl, '_blank')
-        if (!win) {
-          // 2) Se popup bloqueado, tenta envio automático
-          const autoResponse = await fetch('/api/send-welcome-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              emailPessoal,
-              emailCorporativo,
-              nome: formData.nome,
-              senha,
-              areasTexto,
-              tipo: 'colaborador',
-              mode: 'auto',
-            })
-          })
-          const autoResult = await autoResponse.json().catch(() => null)
-          if (autoResult?.success) {
-            emailEnviado = true
-            emailProvider = autoResult.provider || 'smtp'
-          } else if (autoResult?.fallbackMode) {
-            fallbackCredentials = {
-              ...autoResult.credentials,
-              emailDestino: emailPessoal,
-              mailtoUrl: autoResult.mailtoUrl,
-            }
-          }
+      
+      const autoResult = await autoResponse.json().catch(() => null)
+      console.log('📧 Resposta do envio automático:', autoResult)
+      
+      if (autoResult?.success) {
+        emailEnviado = true
+        emailProvider = autoResult.provider || 'webhook'
+        console.log(`✅ Email enviado com sucesso via ${emailProvider}`)
+      } else {
+        console.log('⚠️ Envio automático falhou, preparando fallback')
+        
+        // Criar mailto URL para fallback
+        const subject = '🎉 Bem-vindo à Família Valle 360!'
+        const body = `Olá ${formData.nome},\n\n🔐 Seus Dados de Acesso:\n   📧 Email: ${emailCorporativo}\n   🔑 Senha: ${senha}\n   🔗 ${window.location.origin}/login\n\n⚠️ Altere sua senha no primeiro acesso!`
+        const mailtoUrl = `mailto:${emailPessoal}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+        
+        fallbackCredentials = {
+          emailCorporativo,
+          emailPessoal,
+          senha,
+          mailtoUrl,
         }
       }
     } catch (error) {
-      console.error('Erro ao enviar email:', error)
+      console.error('❌ Erro ao enviar email:', error)
     }
     
-    // Retornar info para o handleSubmit tratar
-    return { emailEnviado, emailProvider, fallbackCredentials }
+    // Sempre retornar credenciais para fallback
+    return { 
+      emailEnviado, 
+      emailProvider, 
+      fallbackCredentials 
+    }
 
     // Registrar envio no log (opcional - não bloqueia se falhar)
     try {
@@ -350,6 +353,8 @@ export default function NovoColaboradorPage() {
           })
         })
 
+        console.log("CPNAEL TESTE", cpanelResponse)
+
         const cpanelJson = await cpanelResponse.json().catch(() => null)
         mailboxCreated = Boolean(cpanelResponse.ok && cpanelJson?.success === true)
 
@@ -403,22 +408,33 @@ export default function NovoColaboradorPage() {
       }
 
       // 5. Verificar resultado do email
+      console.log('📧 Resultado do envio de email:', emailResult)
+      
       if (emailResult?.emailEnviado) {
-        toast.success(`Credenciais enviadas para: ${formData.email_pessoal}`);
-        // Redirecionar após sucesso
-        router.push('/admin/colaboradores?success=colaborador_criado')
-      } else {
-        // Email não foi enviado - mostrar modal com credenciais
-        const fallback = emailResult?.fallbackCredentials
+        toast.success(`✅ Credenciais enviadas para: ${formData.email_pessoal}`);
+        // Mostrar modal mesmo quando email foi enviado (para ter backup das credenciais)
         setCredenciaisInfo({
-          email: fallback?.email || formData.email,
+          email: formData.email,
+          senha: senhaProvisoria,
+          nome: formData.nome,
+          emailEnviado: true,
+          provider: emailResult?.emailProvider,
+        })
+        setShowCredentialsModal(true)
+      } else {
+        // Email não foi enviado - SEMPRE mostrar modal com credenciais
+        const fallback = emailResult?.fallbackCredentials
+        console.log('⚠️ Email não foi enviado. Mostrando modal de fallback:', fallback)
+        
+        setCredenciaisInfo({
+          email: fallback?.emailCorporativo || formData.email,
           senha: fallback?.senha || senhaProvisoria,
           nome: formData.nome,
           emailEnviado: false,
           mailtoUrl: fallback?.mailtoUrl,
         })
         setShowCredentialsModal(true)
-        toast.warning('Email não enviado automaticamente. Use o modal para copiar as credenciais.')
+        toast.error('❌ Email não foi enviado automaticamente. COPIE as credenciais do modal!')
       }
 
     } catch (error: any) {

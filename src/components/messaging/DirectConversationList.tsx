@@ -285,15 +285,13 @@ export function DirectConversationList({
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex-1">
             {titleOverride || (filterType === 'clients' ? 'Clientes' : filterType === 'team' ? 'Equipe' : 'Conversas')}
           </h2>
-          {!adminView && (
-            <Button
-              onClick={onNewConversation}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            onClick={onNewConversation}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />

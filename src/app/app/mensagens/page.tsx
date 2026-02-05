@@ -140,10 +140,10 @@ export default function MensagensPage() {
                     setSelectedGroup(null);
                   }}
                   selectedConversationId={selectedConversation?.id}
-                  onNewConversation={() => !isSuperAdmin && setIsNewConversationModalOpen(true)}
+                  onNewConversation={() => setIsNewConversationModalOpen(true)}
                   currentUserId={currentUserId}
                   filterType="team"
-                  adminView={isSuperAdmin}
+                  adminView={false}
                 />
               )}
               {currentUserId && activeTab === 'clients' && (
@@ -153,10 +153,10 @@ export default function MensagensPage() {
                     setSelectedGroup(null);
                   }}
                   selectedConversationId={selectedConversation?.id}
-                  onNewConversation={() => !isSuperAdmin && setIsNewConversationModalOpen(true)}
+                  onNewConversation={() => setIsNewConversationModalOpen(true)}
                   currentUserId={currentUserId}
                   filterType="clients"
-                  adminView={isSuperAdmin}
+                  adminView={false}
                 />
               )}
             </div>
@@ -199,15 +199,24 @@ export default function MensagensPage() {
       )}
 
       {currentUserId && isSuperAdmin && (
-        <NewConversationModal
-          isOpen={isNewGroupModalOpen}
-          onClose={() => setIsNewGroupModalOpen(false)}
-          onConversationCreated={(groupId) => {
-            setIsNewGroupModalOpen(false);
-            // Recarregar lista de grupos
-          }}
-          currentUserId={currentUserId}
-        />
+        <>
+          <NewDirectConversationModal
+            isOpen={isNewConversationModalOpen && activeTab !== 'groups'}
+            onClose={() => setIsNewConversationModalOpen(false)}
+            onConversationCreated={handleConversationCreated}
+            currentUserId={currentUserId}
+            filterType={activeTab === 'clients' ? 'clients' : 'team'}
+          />
+          <NewConversationModal
+            isOpen={isNewGroupModalOpen}
+            onClose={() => setIsNewGroupModalOpen(false)}
+            onConversationCreated={(groupId) => {
+              setIsNewGroupModalOpen(false);
+              // Recarregar lista de grupos
+            }}
+            currentUserId={currentUserId}
+          />
+        </>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

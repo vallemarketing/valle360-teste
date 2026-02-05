@@ -47,6 +47,14 @@ async function sendViaWebhook(payload: EmailPayload): Promise<EmailResult> {
   const bodyContent = payload.html || payload.text || '';
 
   try {
+    console.log('📤 Tentando enviar email via webhook...')
+    console.log('📧 Para:', payload.to)
+    console.log('📋 Assunto:', payload.subject)
+    
+    // Timeout de 15 segundos (webhook pode demorar um pouco)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
     const response = await fetch('https://webhookprod.api01vaiplh.com.br/webhook/enviar-email', {
       method: 'POST',
       headers: {
@@ -58,16 +66,30 @@ async function sendViaWebhook(payload: EmailPayload): Promise<EmailResult> {
         subject: payload.subject,
         body: bodyContent,
       }),
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
+    console.log('📊 Status da resposta webhook:', response.status)
+    console.log('📋 Headers:', response.headers.get('content-type'))
+    
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('❌ Erro no webhook:', errorText)
       return { success: false, message: 'Erro ao enviar email', error: errorText || 'WEBHOOK_ERROR' };
     }
 
-    await response.json();
+    const result = await response.json();
+    console.log('✅ Resposta do webhook:', result)
+    console.log('✅ Email enviado via webhook com sucesso!')
     return { success: true, provider: 'webhook', message: 'Email enviado via Webhook' };
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('⏱️ Timeout: Webhook demorou mais de 15 segundos')
+      return { success: false, message: 'Timeout no webhook', error: 'Webhook demorou mais de 15s' };
+    }
+    console.error('💥 Exceção ao enviar via webhook:', error.message)
     return { success: false, message: 'Erro no webhook', error: error.message };
   }
 }

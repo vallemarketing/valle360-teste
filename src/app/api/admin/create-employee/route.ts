@@ -172,16 +172,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. user_profiles (hub) - garantir
-    await supabaseAdmin.from('user_profiles').upsert({
-      id: userId,
-      user_id: userId,
-      email,
-      full_name: `${nome} ${sobrenome}`,
-      user_type: 'employee',
-      role: 'employee',
-      is_active: true,
-      metadata: emailPessoal ? { personal_email: emailPessoal } : undefined
-    })
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .upsert({
+        id: userId,
+        user_id: userId,
+        email,
+        full_name: `${nome} ${sobrenome}`,
+        user_type: 'employee',
+        role: 'employee',
+        is_active: true,
+        avatar_url: fotoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
+      })
+      .select()
+      .single()
+
+    if (profileError) {
+      console.error('❌ Erro ao criar user_profile:', profileError)
+      // Rollback completo
+      await supabaseAdmin.from('employee_permissions').delete().eq('employee_id', employeeData.id)
+      await supabaseAdmin.from('employees').delete().eq('id', employeeData.id)
+      await supabaseAdmin.from('users').delete().eq('id', userId)
+      await supabaseAdmin.auth.admin.deleteUser(userId)
+      
+      return NextResponse.json({ 
+        error: 'Falha ao criar perfil de usuário: ' + profileError.message,
+        details: profileError
+      }, { status: 400 })
+    }
+
+    console.log('✅ user_profile criado com sucesso:', profileData)
 
     // 6. Event bus: employee.created
     const event = await emitEvent({

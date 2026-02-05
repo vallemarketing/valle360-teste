@@ -87,6 +87,7 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
 
   useEffect(() => {
     if (conversation?.id) {
+      console.log('🔄 Configurando realtime para conversa:', conversation.id);
       loadMessages();
       if (!readOnly) markAsRead();
 
@@ -101,8 +102,10 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
             filter: `conversation_id=eq.${conversation.id}`,
           },
           (payload) => {
+            console.log('🔔 NOVA MENSAGEM RECEBIDA (realtime):', payload);
             const newMsg = payload.new as any;
             if (newMsg.from_user_id !== currentUserId) {
+              console.log('🔔 Mensagem de outro usuário, tocando som');
               playNotificationSound(conversation.is_client_conversation);
               setNewMessageIds(prev => new Set(prev).add(newMsg.id));
               setTimeout(() => {
@@ -112,7 +115,10 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
                   return updated;
                 });
               }, 500);
+            } else {
+              console.log('🔔 Mensagem própria, não toca som');
             }
+            console.log('🔄 Recarregando mensagens...');
             loadMessages();
             if (!readOnly) markAsRead();
           }
@@ -125,12 +131,23 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
             table: 'message_read_receipts',
           },
           () => {
+            console.log('📖 Read receipt atualizado');
             loadMessages();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('🔌 Status da subscrição realtime:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ REALTIME CONECTADO com sucesso!');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ ERRO no canal realtime');
+          } else if (status === 'TIMED_OUT') {
+            console.error('⏱️ TIMEOUT na conexão realtime');
+          }
+        });
 
       return () => {
+        console.log('🔌 Desconectando realtime da conversa:', conversation.id);
         supabase.removeChannel(channel);
       };
     }
@@ -254,13 +271,28 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (readOnly) return;
-    if ((!newMessage.trim() && attachments.length === 0) || isSending) return;
+    console.log('📤 ========== TENTANDO ENVIAR MENSAGEM ==========');
+    console.log('📤 ReadOnly:', readOnly);
+    console.log('📤 NewMessage:', newMessage);
+    console.log('📤 Attachments:', attachments.length);
+    console.log('📤 IsSending:', isSending);
+    console.log('📤 ConversationId:', conversation.id);
+    console.log('📤 CurrentUserId:', currentUserId);
+    
+    if (readOnly) {
+      console.log('❌ BLOQUEADO: ReadOnly = true');
+      return;
+    }
+    if ((!newMessage.trim() && attachments.length === 0) || isSending) {
+      console.log('❌ BLOQUEADO: Mensagem vazia ou já enviando');
+      return;
+    }
 
     setIsSending(true);
     stopTyping();
 
     try {
+      console.log('📤 Inserindo mensagem no banco...');
       const { data: messageData, error: messageError } = await supabase
         .from('direct_messages')
         .insert({
@@ -272,7 +304,12 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
         .select()
         .single();
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error('❌ ERRO AO INSERIR MENSAGEM:', messageError);
+        throw messageError;
+      }
+      
+      console.log('✅ Mensagem inserida com sucesso:', messageData);
 
       if (attachments.length > 0 && messageData) {
         for (const attachment of attachments) {
@@ -340,11 +377,14 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
 
       setNewMessage('');
       setAttachments([]);
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem');
+      console.log('✅ MENSAGEM ENVIADA COM SUCESSO!');
+    } catch (error: any) {
+      console.error('❌ ERRO AO ENVIAR MENSAGEM:', error);
+      console.error('❌ Detalhes do erro:', JSON.stringify(error, null, 2));
+      alert(`Erro ao enviar mensagem: ${error?.message || 'Desconhecido'}`);
     } finally {
       setIsSending(false);
+      console.log('📤 IsSending = false');
     }
   };
 

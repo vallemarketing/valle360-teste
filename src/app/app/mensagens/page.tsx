@@ -172,9 +172,9 @@ export default function MensagensPage() {
 
             <div className="lg:col-span-2 overflow-hidden">
               {activeTab === 'groups' && selectedGroup && currentUserId ? (
-                <GroupChatWindow group={selectedGroup} currentUserId={currentUserId} readOnly={isSuperAdmin} />
+                <GroupChatWindow group={selectedGroup} currentUserId={currentUserId} readOnly={false} />
               ) : activeTab !== 'groups' && selectedConversation && currentUserId ? (
-                <DirectChatWindow conversation={selectedConversation} currentUserId={currentUserId} readOnly={isSuperAdmin} />
+                <DirectChatWindow conversation={selectedConversation} currentUserId={currentUserId} readOnly={false} />
               ) : (
                 <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
                   <div className="text-center">

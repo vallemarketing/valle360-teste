@@ -101,9 +101,33 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
             table: 'direct_messages',
             filter: `conversation_id=eq.${conversation.id}`,
           },
-          (payload) => {
+          async (payload) => {
             console.log('🔔 NOVA MENSAGEM RECEBIDA (realtime):', payload);
             const newMsg = payload.new as any;
+            
+            // Adicionar mensagem otimisticamente ao estado (sem piscar)
+            const optimisticMessage: DirectMessage = {
+              id: newMsg.id,
+              body: newMsg.body || '',
+              from_user_id: newMsg.from_user_id,
+              created_at: newMsg.created_at,
+              is_read: newMsg.from_user_id === currentUserId,
+              sender_name: newMsg.from_user_id === currentUserId ? 'Você' : conversation.other_user_name,
+              sender_avatar: newMsg.from_user_id === currentUserId ? undefined : conversation.other_user_avatar,
+              attachments: [],
+            };
+            
+            // Adicionar diretamente ao estado sem recarregar
+            setMessages(prev => {
+              // Evitar duplicatas
+              if (prev.some(m => m.id === newMsg.id)) {
+                console.log('⚠️ Mensagem já existe no estado, ignorando');
+                return prev;
+              }
+              console.log('➕ Adicionando mensagem ao estado');
+              return [...prev, optimisticMessage];
+            });
+            
             if (newMsg.from_user_id !== currentUserId) {
               console.log('🔔 Mensagem de outro usuário, tocando som');
               playNotificationSound(conversation.is_client_conversation);
@@ -115,12 +139,17 @@ export function DirectChatWindow({ conversation, currentUserId, readOnly = false
                   return updated;
                 });
               }, 500);
+              
+              // Marcar como lido
+              if (!readOnly) markAsRead();
             } else {
               console.log('🔔 Mensagem própria, não toca som');
             }
-            console.log('🔄 Recarregando mensagens...');
-            loadMessages();
-            if (!readOnly) markAsRead();
+            
+            // Scroll para o final
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
           }
         )
         .on(

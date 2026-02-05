@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,18 @@ export function DirectConversationList({
   const [conversations, setConversations] = useState<DirectConversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const reloadTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Função de reload com debounce para evitar flash
+  const scheduleReload = () => {
+    if (reloadTimerRef.current) {
+      clearTimeout(reloadTimerRef.current);
+    }
+    reloadTimerRef.current = setTimeout(() => {
+      console.log('🔄 Recarregando lista de conversas (debounced)');
+      loadConversations();
+    }, 500); // Aguarda 500ms antes de recarregar
+  };
 
   useEffect(() => {
     loadConversations();
@@ -58,12 +70,54 @@ export function DirectConversationList({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_conversations',
+        },
+        (payload) => {
+          console.log('🔔 Conversa atualizada:', payload);
+          const updated = payload.new as any;
+          
+          // Atualizar apenas a conversa específica no estado (SEM recarregar tudo)
+          setConversations(prev => {
+            const index = prev.findIndex(c => c.id === updated.id);
+            if (index === -1) {
+              // Conversa nova, precisa recarregar
+              console.log('🆕 Conversa nova detectada, recarregando lista');
+              scheduleReload();
+              return prev;
+            }
+            
+            // Atualizar conversa existente
+            console.log('🔄 Atualizando conversa existente no estado');
+            const newConversations = [...prev];
+            newConversations[index] = {
+              ...newConversations[index],
+              last_message_at: updated.last_message_at,
+              last_message_preview: updated.last_message_preview,
+            };
+            
+            // Reordenar (mais recente primeiro)
+            newConversations.sort((a, b) => {
+              const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+              const dateB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+              return dateB - dateA;
+            });
+            
+            return newConversations;
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
           schema: 'public',
           table: 'direct_conversations',
         },
         () => {
-          loadConversations();
+          console.log('🆕 Nova conversa criada');
+          scheduleReload();
         }
       )
       .on(
@@ -74,30 +128,26 @@ export function DirectConversationList({
           table: 'direct_conversation_participants',
         },
         () => {
-          loadConversations();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        () => {
-          loadConversations();
+          console.log('🔔 Mudança em participantes');
+          scheduleReload();
         }
       )
       .subscribe();
 
     return () => {
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
+      }
       supabase.removeChannel(channel);
     };
   }, [currentUserId]);
 
   const loadConversations = async () => {
     try {
-      setIsLoading(true);
+      // Só mostra loading na primeira vez
+      if (conversations.length === 0) {
+        setIsLoading(true);
+      }
 
       let conversationsWithUsers: any[] = [];
 

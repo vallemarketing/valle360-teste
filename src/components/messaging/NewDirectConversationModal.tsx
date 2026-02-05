@@ -61,7 +61,7 @@ export function NewDirectConversationModal({
 
   const loadUsers = async () => {
     try {
-      console.log('🔍 Buscando usuários...');
+      console.log('🔍 ========== INICIANDO BUSCA DE USUÁRIOS ==========');
       console.log('🔍 FilterType:', filterType);
       console.log('🔍 CurrentUserId:', currentUserId);
       
@@ -73,31 +73,41 @@ export function NewDirectConversationModal({
         .order('full_name');
 
       if (error) {
-        console.error('❌ Erro ao buscar user_profiles:', error);
+        console.error('❌ ERRO AO BUSCAR user_profiles:', error);
+        alert(`Erro ao buscar usuários: ${error.message}`);
         throw error;
       }
 
-      console.log('📊 Dados recebidos:', data);
+      console.log('📊 TOTAL DE user_profiles RECEBIDOS:', data?.length || 0);
+      console.log('📊 DADOS BRUTOS:', JSON.stringify(data, null, 2));
 
       let filteredData = data || [];
 
       // Aplicar filtro de tipo
       if (filterType === 'clients') {
+        console.log('🔍 Filtrando apenas CLIENTES...');
         filteredData = filteredData.filter((u) => String(u?.user_type || '') === 'client');
+        console.log('📊 Clientes encontrados:', filteredData.length);
       } else if (filterType === 'team') {
-        // Para equipe, pegar todos que NÃO são cliente (employee, admin, super_admin, etc)
+        console.log('🔍 Filtrando apenas EQUIPE (não-clientes)...');
         filteredData = filteredData.filter((u) => {
           const userType = String(u?.user_type || '').toLowerCase();
-          return userType !== 'client' && userType !== '';
+          const isNotClient = userType !== 'client' && userType !== '';
+          console.log(`   - ${u?.full_name}: tipo="${userType}", incluir=${isNotClient}`);
+          return isNotClient;
         });
+        console.log('📊 Membros da equipe encontrados:', filteredData.length);
       }
 
-      console.log('📊 Após filtro:', filteredData);
+      console.log('📊 APÓS FILTRO:', JSON.stringify(filteredData, null, 2));
 
       const normalized: UserProfile[] = filteredData
         .map((u: any) => {
           const authId = u?.user_id ? String(u.user_id) : u?.id ? String(u.id) : null;
-          if (!authId) return null;
+          if (!authId) {
+            console.warn('⚠️ user_profile sem authId:', u);
+            return null;
+          }
           return {
             id: authId,
             full_name: String(u?.full_name || 'Usuário'),
@@ -108,12 +118,21 @@ export function NewDirectConversationModal({
         })
         .filter(Boolean) as UserProfile[];
 
+      console.log('📊 USUÁRIOS NORMALIZADOS:', normalized.length);
+
       const finalUsers = normalized.filter((u) => u.id !== currentUserId);
-      console.log('✅ Usuários finais:', finalUsers);
+      console.log('📊 USUÁRIOS FINAIS (excluindo atual):', finalUsers.length);
+      console.log('✅ LISTA FINAL:', JSON.stringify(finalUsers, null, 2));
+      
+      if (finalUsers.length === 0) {
+        console.error('❌ NENHUM USUÁRIO PARA MOSTRAR!');
+        alert('⚠️ Nenhum usuário encontrado. Verifique o console para detalhes.');
+      }
       
       setUsers(finalUsers);
-    } catch (error) {
-      console.error('❌ Erro ao carregar usuários:', error);
+    } catch (error: any) {
+      console.error('❌ ERRO CRÍTICO ao carregar usuários:', error);
+      alert(`Erro crítico: ${error?.message || 'Desconhecido'}`);
     }
   };
 

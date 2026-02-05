@@ -58,13 +58,23 @@ export function usePresence({ userId, groupId }: UsePresenceOptions = {}) {
     if (!userId) return;
 
     try {
-      await supabase.rpc('update_user_presence', {
+      const { error } = await supabase.rpc('update_user_presence', {
         p_user_id: userId,
         p_status: status,
         p_group_id: groupId || null,
       });
-    } catch (error) {
-      console.error('Erro ao atualizar presença:', error);
+      
+      if (error) {
+        // Silenciosamente falha se a função não existir (404)
+        if (error.message?.includes('Could not find') || error.code === '42883') {
+          console.warn('⚠️ Função update_user_presence não existe no banco. Execute o SQL fornecido.');
+          return;
+        }
+        throw error;
+      }
+    } catch (error: any) {
+      // Não quebrar a aplicação se presença falhar
+      console.warn('⚠️ Erro ao atualizar presença (não crítico):', error?.message || error);
     }
   };
 

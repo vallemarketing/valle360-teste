@@ -37,7 +37,13 @@ export function NewDirectConversationModal({
   const [isCreating, setIsCreating] = useState(false);
   const [currentUserType, setCurrentUserType] = useState<string>('');
 
+  console.log('🎭 NewDirectConversationModal renderizado');
+  console.log('🎭 isOpen:', isOpen);
+  console.log('🎭 currentUserId:', currentUserId);
+  console.log('🎭 filterType:', filterType);
+
   useEffect(() => {
+    console.log('🎭 useEffect disparado, isOpen:', isOpen);
     if (isOpen) {
       loadCurrentUserType();
       loadUsers();
@@ -179,7 +185,12 @@ export function NewDirectConversationModal({
     return roles[userType] || userType;
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log('🎭 Modal não está aberto, retornando null');
+    return null;
+  }
+
+  console.log('🎭 Modal ESTÁ ABERTO, renderizando...');
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

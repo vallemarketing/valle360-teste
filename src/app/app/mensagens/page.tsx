@@ -67,7 +67,16 @@ export default function MensagensPage() {
   };
 
   const handleConversationCreated = (conversationId: string) => {
+    console.log('✅ Conversa criada:', conversationId);
     setIsNewConversationModalOpen(false);
+  };
+
+  const handleOpenNewConversation = () => {
+    console.log('🚀 Abrindo modal Nova Conversa');
+    console.log('🚀 CurrentUserId:', currentUserId);
+    console.log('🚀 IsSuperAdmin:', isSuperAdmin);
+    console.log('🚀 ActiveTab:', activeTab);
+    setIsNewConversationModalOpen(true);
   };
 
   return (
@@ -140,7 +149,7 @@ export default function MensagensPage() {
                     setSelectedGroup(null);
                   }}
                   selectedConversationId={selectedConversation?.id}
-                  onNewConversation={() => setIsNewConversationModalOpen(true)}
+                  onNewConversation={handleOpenNewConversation}
                   currentUserId={currentUserId}
                   filterType="team"
                   adminView={false}
@@ -153,7 +162,7 @@ export default function MensagensPage() {
                     setSelectedGroup(null);
                   }}
                   selectedConversationId={selectedConversation?.id}
-                  onNewConversation={() => setIsNewConversationModalOpen(true)}
+                  onNewConversation={handleOpenNewConversation}
                   currentUserId={currentUserId}
                   filterType="clients"
                   adminView={false}

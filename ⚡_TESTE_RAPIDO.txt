@@ -1,0 +1,68 @@
+⚡ TESTE RÁPIDO - VALLE 360
+═══════════════════════════════════════════════════════════
+
+🚀 ANTES DE COMEÇAR:
+
+1. cd /Users/imac/Desktop/N8N/valle-360
+2. npm install framer-motion
+3. supabase db reset
+4. npm run dev
+
+
+🔐 LOGIN:
+Email: admin@valleai.com.br
+Senha: *Valle2307
+
+
+✅ TESTE AS 6 PÁGINAS:
+
+1. http://localhost:3000/colaborador/dashboard
+   → Header com pontos OK?
+   → 4 Cards carregam?
+   → Quick links funcionam?
+
+2. http://localhost:3000/colaborador/gamificacao
+   → Gradiente amarelo/laranja/vermelho?
+   → 3 Tabs funcionam?
+   → 10 conquistas aparecem?
+
+3. http://localhost:3000/colaborador/fidelidade
+   → Cupom VALLE-NOME-XXXXXX aparece?
+   → Botão copiar funciona?
+   → 4 botões de compartilhar?
+
+4. http://localhost:3000/colaborador/notificacoes
+   → Filtros funcionam?
+   → Lista aparece (pode estar vazia)?
+
+5. http://localhost:3000/colaborador/metas
+   → Plano de carreira aparece?
+   → Metas listadas por tipo?
+
+6. http://localhost:3000/colaborador/desempenho
+   → Tendência aparece?
+   → 4 Scores com barras?
+   → Recomendações da IA?
+
+
+📊 RESULTADO:
+
+✅ Tudo OK → Me avise: "Pode continuar!"
+❌ Tem bug → Me diga: qual página + erro
+❓ Dúvida → Pergunte!
+
+
+═══════════════════════════════════════════════════════════
+
+APÓS TESTE: Implemento Kanban + Menu + Seeds 🚀
+
+
+
+
+
+
+
+
+
+
+

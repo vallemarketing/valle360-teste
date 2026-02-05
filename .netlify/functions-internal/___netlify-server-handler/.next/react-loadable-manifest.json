@@ -1,0 +1,13 @@
+{
+  "components\\layout\\SuperAdminSidebar.tsx -> @/lib/supabase": {
+    "id": 5526,
+    "files": []
+  },
+  "components\\messaging\\EmojiPicker.tsx -> emoji-picker-react": {
+    "id": 41799,
+    "files": [
+      "static/chunks/fcfb803e.3b430cdb2e85b667.js",
+      "static/chunks/8497.eb2ce77c02297577.js"
+    ]
+  }
+}

@@ -1,0 +1,343 @@
+Tabela,Coluna,Tipo,Nullable,Default,PK,FK,Índice,Descrição
+auth.users,id,UUID,NO,uuid_generate_v4(),YES,,,ID único do usuário (Supabase Auth)
+auth.users,email,TEXT,NO,,,,YES,Email do usuário
+auth.users,encrypted_password,TEXT,YES,,,,,"Senha criptografada (bcrypt)"
+auth.users,email_confirmed_at,TIMESTAMP,YES,,,,,Data de confirmação do email
+auth.users,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+auth.users,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+auth.users,role,TEXT,NO,'authenticated',,,,"Role do Supabase Auth"
+auth.users,raw_app_meta_data,JSONB,YES,'{}',,,,"Metadata da aplicação"
+auth.users,raw_user_meta_data,JSONB,YES,'{}',,,,"Metadata do usuário"
+users,id,UUID,NO,uuid_generate_v4(),YES,,,ID único do usuário no sistema
+users,email,TEXT,NO,,,,,Email do usuário
+users,password_hash,TEXT,YES,,,,,"Hash da senha"
+users,full_name,TEXT,NO,,,,,"Nome completo"
+users,role,user_role,NO,'employee',,,,"Role: super_admin | admin | hr | finance | manager | employee | client"
+users,is_active,BOOLEAN,NO,true,,,,"Usuário ativo?"
+users,email_verified,BOOLEAN,NO,false,,,,"Email verificado?"
+users,two_factor_enabled,BOOLEAN,NO,false,,,,"2FA habilitado?"
+users,two_factor_secret,TEXT,YES,,,,,"Secret do 2FA (TOTP)"
+users,last_login_at,TIMESTAMP,YES,,,,,"Último login"
+users,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+users,updated_at,TIMESTAMP,NO,NOW(),,,YES,"Data de atualização (trigger auto)"
+user_profiles,id,UUID,NO,uuid_generate_v4(),YES,,,ID do perfil
+user_profiles,user_id,UUID,YES,,,"auth.users(id)",YES,Referência ao usuário auth
+user_profiles,full_name,TEXT,NO,,,,,"Nome completo"
+user_profiles,email,TEXT,NO,,,,,Email (duplicado para queries rápidas)
+user_profiles,phone,TEXT,YES,,,,,"Telefone"
+user_profiles,avatar,TEXT,YES,,,,,"URL do avatar"
+user_profiles,role,user_role,NO,'employee',,,,"Role do usuário"
+user_profiles,user_type,user_type,NO,'employee',,,,"Tipo: super_admin | admin | hr | finance | manager | employee | client"
+user_profiles,is_active,BOOLEAN,NO,true,,,,"Perfil ativo?"
+user_profiles,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+user_profiles,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+clients,id,UUID,NO,uuid_generate_v4(),YES,,,ID do cliente
+clients,user_id,UUID,YES,,,"auth.users(id)",YES,Usuário associado
+clients,company_name,TEXT,NO,,,,,"Nome da empresa"
+clients,company_size,TEXT,YES,,,,,"Tamanho da empresa (Pequena/Média/Grande)"
+clients,industry,TEXT,YES,,,,,"Indústria/Segmento"
+clients,website,TEXT,YES,,,,,"Site da empresa"
+clients,logo_url,TEXT,YES,,,,,"URL do logo"
+clients,contact_name,TEXT,NO,,,,,"Nome do contato principal"
+clients,contact_email,TEXT,NO,,,,,"Email do contato"
+clients,contact_phone,TEXT,YES,,,,,"Telefone do contato"
+clients,address,TEXT,YES,,,,,"Endereço"
+clients,city,TEXT,YES,,,,,"Cidade"
+clients,state,TEXT,YES,,,,,"Estado/UF"
+clients,country,TEXT,NO,'Brasil',,,,"País"
+clients,postal_code,TEXT,YES,,,,,"CEP"
+clients,tax_id,TEXT,YES,,,,,"CNPJ"
+clients,status,TEXT,NO,'active',,,,"Status: active | inactive | pending"
+clients,onboarding_completed,BOOLEAN,NO,false,,,,"Onboarding completo?"
+clients,is_active,BOOLEAN,NO,true,,,,"Cliente ativo?"
+clients,created_at,TIMESTAMP,NO,NOW(),,,,"Data de cadastro"
+clients,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+employees,id,UUID,NO,uuid_generate_v4(),YES,,,ID do colaborador
+employees,user_id,UUID,YES,,,"auth.users(id)",YES,Usuário associado
+employees,full_name,TEXT,NO,,,,,"Nome completo"
+employees,email,TEXT,NO,,,,,Email corporativo
+employees,phone,TEXT,YES,,,,,"Telefone"
+employees,avatar,TEXT,YES,,,,,"URL do avatar"
+employees,department,TEXT,YES,,,,,"Departamento (Marketing/Design/Comercial/etc)"
+employees,position,TEXT,YES,,,,,"Cargo"
+employees,area_of_expertise,TEXT,YES,,,,,"Área de especialidade (Social Media/Tráfego/Design/etc)"
+employees,hire_date,DATE,YES,,,,,"Data de contratação"
+employees,birth_date,DATE,YES,,,,,"Data de nascimento"
+employees,emergency_contact,TEXT,YES,,,,,"Contato de emergência"
+employees,emergency_phone,TEXT,YES,,,,,"Telefone de emergência"
+employees,pix_key,TEXT,YES,,,,,"Chave PIX para pagamentos"
+employees,is_active,BOOLEAN,NO,true,,,,"Colaborador ativo?"
+employees,created_at,TIMESTAMP,NO,NOW(),,,,"Data de cadastro"
+employees,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+employee_permissions,id,UUID,NO,uuid_generate_v4(),YES,,,ID da permissão
+employee_permissions,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_permissions,permission_key,TEXT,NO,,,,,"Chave da permissão (dashboard/clients/employees/etc)"
+employee_permissions,can_view,BOOLEAN,NO,false,,,,"Pode visualizar?"
+employee_permissions,can_create,BOOLEAN,NO,false,,,,"Pode criar?"
+employee_permissions,can_edit,BOOLEAN,NO,false,,,,"Pode editar?"
+employee_permissions,can_delete,BOOLEAN,NO,false,,,,"Pode deletar?"
+employee_permissions,can_approve,BOOLEAN,NO,false,,,,"Pode aprovar?"
+employee_permissions,granted_at,TIMESTAMP,NO,NOW(),,,,"Data de concessão"
+employee_gamification,id,UUID,NO,uuid_generate_v4(),YES,,,ID gamificação
+employee_gamification,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_gamification,total_points,INTEGER,NO,0,,,,"Total de pontos"
+employee_gamification,level,INTEGER,NO,1,,,,"Nível atual"
+employee_gamification,current_streak,INTEGER,NO,0,,,,"Sequência atual (dias consecutivos)"
+employee_gamification,longest_streak,INTEGER,NO,0,,,,"Maior sequência alcançada"
+employee_gamification,last_activity_date,DATE,YES,,,,,"Data da última atividade"
+employee_gamification,productivity_score,DECIMAL(5,2),NO,0,,,,"Score de produtividade (0-100)"
+employee_gamification,quality_score,DECIMAL(5,2),NO,0,,,,"Score de qualidade (0-100)"
+employee_gamification,collaboration_score,DECIMAL(5,2),NO,0,,,,"Score de colaboração (0-100)"
+employee_gamification,wellbeing_score,DECIMAL(5,2),NO,0,,,,"Score de bem-estar (0-100)"
+employee_gamification,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+employee_gamification,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+employee_referral_codes,id,UUID,NO,uuid_generate_v4(),YES,,,ID do código de indicação
+employee_referral_codes,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_referral_codes,referral_code,TEXT,NO,,,,,Código único de indicação
+employee_referral_codes,discount_percentage,DECIMAL(5,2),NO,10.00,,,,"% de desconto para o cliente"
+employee_referral_codes,commission_percentage,DECIMAL(5,2),NO,10.00,,,,"% de comissão para o colaborador"
+employee_referral_codes,total_referrals,INTEGER,NO,0,,,,"Total de indicações"
+employee_referral_codes,total_earnings,DECIMAL(12,2),NO,0,,,,"Total ganho em comissões"
+employee_referral_codes,is_active,BOOLEAN,NO,true,,,,"Código ativo?"
+employee_referral_codes,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+employee_referral_codes,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+client_referrals,id,UUID,NO,uuid_generate_v4(),YES,,,ID da indicação
+client_referrals,referral_code_id,UUID,NO,,,"employee_referral_codes(id)",YES,Código usado
+client_referrals,client_id,UUID,NO,,,"clients(id)",YES,Cliente indicado
+client_referrals,contract_value,DECIMAL(12,2),NO,0,,,,"Valor do contrato"
+client_referrals,commission_paid,BOOLEAN,NO,false,,,,"Comissão paga?"
+client_referrals,commission_amount,DECIMAL(12,2),NO,0,,,,"Valor da comissão"
+client_referrals,paid_at,TIMESTAMP,YES,,,,,"Data do pagamento"
+client_referrals,created_at,TIMESTAMP,NO,NOW(),,,,"Data da indicação"
+kanban_boards,id,UUID,NO,uuid_generate_v4(),YES,,,ID do quadro Kanban
+kanban_boards,name,TEXT,NO,,,,,"Nome do quadro"
+kanban_boards,description,TEXT,YES,,,,,"Descrição"
+kanban_boards,client_id,UUID,YES,,,"clients(id)",YES,Cliente relacionado (se houver)
+kanban_boards,is_active,BOOLEAN,NO,true,,,,"Quadro ativo?"
+kanban_boards,created_by,UUID,YES,,,"auth.users(id)",YES,Criado por
+kanban_boards,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+kanban_boards,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+kanban_columns,id,UUID,NO,uuid_generate_v4(),YES,,,ID da coluna
+kanban_columns,board_id,UUID,NO,,,"kanban_boards(id)",YES,Quadro
+kanban_columns,name,TEXT,NO,,,,,"Nome da coluna (Backlog/To Do/In Progress/etc)"
+kanban_columns,position,INTEGER,NO,,,,,"Posição da coluna"
+kanban_columns,color,TEXT,NO,'#6B7280',,,,"Cor da coluna (hex)"
+kanban_columns,wip_limit,INTEGER,YES,,,,,"Limite WIP (Work In Progress)"
+kanban_columns,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+kanban_columns,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+kanban_tasks,id,UUID,NO,uuid_generate_v4(),YES,,,ID da tarefa
+kanban_tasks,board_id,UUID,NO,,,"kanban_boards(id)",YES,Quadro
+kanban_tasks,column_id,UUID,NO,,,"kanban_columns(id)",YES,Coluna atual
+kanban_tasks,title,TEXT,NO,,,,,"Título da tarefa"
+kanban_tasks,description,TEXT,YES,,,,,"Descrição detalhada"
+kanban_tasks,priority,task_priority,NO,'medium',,,,"Prioridade: low | medium | high | urgent"
+kanban_tasks,status,task_status,NO,'todo',,,,"Status: backlog | todo | in_progress | in_review | done | blocked | cancelled"
+kanban_tasks,assigned_to,UUID,YES,,,"auth.users(id)",YES,Atribuído a
+kanban_tasks,created_by,UUID,YES,,,"auth.users(id)",YES,Criado por
+kanban_tasks,due_date,DATE,YES,,,,,"Data de vencimento"
+kanban_tasks,estimated_hours,DECIMAL(5,2),YES,,,,,"Horas estimadas"
+kanban_tasks,actual_hours,DECIMAL(5,2),YES,,,,,"Horas reais gastas"
+kanban_tasks,position,INTEGER,NO,,,,,"Posição na coluna"
+kanban_tasks,tags,TEXT[],YES,'{}',,,,"Tags/labels"
+kanban_tasks,attachments,JSONB,NO,'[]',,,,"Anexos (array de objetos)"
+kanban_tasks,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+kanban_tasks,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+kanban_tasks,completed_at,TIMESTAMP,YES,,,,,"Data de conclusão"
+messages,id,UUID,NO,uuid_generate_v4(),YES,,,ID da mensagem
+messages,sender_id,UUID,NO,,,"auth.users(id)",YES,Remetente
+messages,recipient_id,UUID,YES,,,"auth.users(id)",YES,Destinatário (mensagem direta)
+messages,group_id,UUID,YES,,,"message_groups(id)",YES,Grupo (mensagem em grupo)
+messages,content,TEXT,NO,,,,,"Conteúdo da mensagem"
+messages,attachments,JSONB,NO,'[]',,,,"Anexos"
+messages,is_read,BOOLEAN,NO,false,,,,"Mensagem lida?"
+messages,read_at,TIMESTAMP,YES,,,,,"Data de leitura"
+messages,created_at,TIMESTAMP,NO,NOW(),,,YES,"Data de envio"
+messages,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+message_groups,id,UUID,NO,uuid_generate_v4(),YES,,,ID do grupo
+message_groups,name,TEXT,NO,,,,,"Nome do grupo"
+message_groups,description,TEXT,YES,,,,,"Descrição do grupo"
+message_groups,avatar,TEXT,YES,,,,,"Avatar do grupo"
+message_groups,created_by,UUID,YES,,,"auth.users(id)",YES,Criado por
+message_groups,is_active,BOOLEAN,NO,true,,,,"Grupo ativo?"
+message_groups,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+message_groups,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+group_members,id,UUID,NO,uuid_generate_v4(),YES,,,ID do membro
+group_members,group_id,UUID,NO,,,"message_groups(id)",YES,Grupo
+group_members,user_id,UUID,NO,,,"auth.users(id)",YES,Usuário
+group_members,role,TEXT,NO,'member',,,,"Role no grupo: admin | member"
+group_members,joined_at,TIMESTAMP,NO,NOW(),,,,"Data de entrada"
+notifications,id,UUID,NO,uuid_generate_v4(),YES,,,ID da notificação
+notifications,user_id,UUID,NO,,,"auth.users(id)",YES,Usuário destinatário
+notifications,title,TEXT,NO,,,,,"Título da notificação"
+notifications,message,TEXT,NO,,,,,"Mensagem"
+notifications,type,TEXT,NO,,,,,"Tipo: task | message | system | alert | success | warning | error"
+notifications,is_read,BOOLEAN,NO,false,,,YES,"Lida?"
+notifications,read_at,TIMESTAMP,YES,,,,,"Data de leitura"
+notifications,link,TEXT,YES,,,,,"Link de ação"
+notifications,metadata,JSONB,NO,'{}',,,,"Metadata adicional"
+notifications,created_at,TIMESTAMP,NO,NOW(),,,YES,"Data de criação"
+plans,id,UUID,NO,uuid_generate_v4(),YES,,,ID do plano
+plans,name,TEXT,NO,,,,,Nome do plano
+plans,description,TEXT,YES,,,,,"Descrição"
+plans,price,DECIMAL(12,2),NO,,,,,"Preço mensal"
+plans,features,TEXT[],YES,'{}',,,,"Features incluídas"
+plans,is_active,BOOLEAN,NO,true,,,,"Plano ativo?"
+plans,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+plans,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+client_contracts,id,UUID,NO,uuid_generate_v4(),YES,,,ID do contrato
+client_contracts,client_id,UUID,NO,,,"clients(id)",YES,Cliente
+client_contracts,plan_id,UUID,YES,,,"plans(id)",YES,Plano contratado
+client_contracts,start_date,DATE,NO,,,,,"Data de início"
+client_contracts,end_date,DATE,YES,,,,,"Data de término"
+client_contracts,monthly_value,DECIMAL(12,2),NO,,,,,"Valor mensal"
+client_contracts,payment_day,INTEGER,YES,,,,,"Dia do pagamento (1-31)"
+client_contracts,status,TEXT,NO,'active',,,,"Status: active | suspended | cancelled"
+client_contracts,is_active,BOOLEAN,NO,true,,,,"Contrato ativo?"
+client_contracts,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+client_contracts,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+client_services,id,UUID,NO,uuid_generate_v4(),YES,,,ID do serviço
+client_services,client_id,UUID,NO,,,"clients(id)",YES,Cliente
+client_services,service_name,TEXT,NO,,,,,"Nome do serviço"
+client_services,service_type,TEXT,NO,,,,,"Tipo: social_media | paid_traffic | design | video | seo | etc"
+client_services,responsible_id,UUID,YES,,,"employees(id)",YES,Responsável
+client_services,start_date,DATE,YES,,,,,"Data de início"
+client_services,end_date,DATE,YES,,,,,"Data de término"
+client_services,is_active,BOOLEAN,NO,true,,,,"Serviço ativo?"
+client_services,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+client_services,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+financial_transactions,id,UUID,NO,uuid_generate_v4(),YES,,,ID da transação
+financial_transactions,client_id,UUID,YES,,,"clients(id)",YES,Cliente (se aplicável)
+financial_transactions,employee_id,UUID,YES,,,"employees(id)",YES,Colaborador (se aplicável)
+financial_transactions,type,TEXT,NO,,,,,"Tipo: income | expense"
+financial_transactions,category,TEXT,NO,,,,,"Categoria: subscription | commission | salary | service | etc"
+financial_transactions,description,TEXT,NO,,,,,"Descrição"
+financial_transactions,amount,DECIMAL(12,2),NO,,,,,"Valor"
+financial_transactions,payment_method,TEXT,YES,,,,,"Método de pagamento"
+financial_transactions,status,TEXT,NO,'pending',,,,"Status: pending | completed | cancelled"
+financial_transactions,due_date,DATE,YES,,,,,"Data de vencimento"
+financial_transactions,paid_at,TIMESTAMP,YES,,,,,"Data de pagamento"
+financial_transactions,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+financial_transactions,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+audit_logs,id,UUID,NO,uuid_generate_v4(),YES,,,ID do log
+audit_logs,user_id,UUID,YES,,,"auth.users(id)",YES,Usuário que executou
+audit_logs,action,TEXT,NO,,,,,"Ação: create | update | delete | login | logout | etc"
+audit_logs,entity_type,TEXT,NO,,,,,"Tipo de entidade: client | employee | task | message | etc"
+audit_logs,entity_id,UUID,YES,,,,,"ID da entidade afetada"
+audit_logs,old_values,JSONB,YES,,,,,"Valores antigos (antes da mudança)"
+audit_logs,new_values,JSONB,YES,,,,,"Valores novos (depois da mudança)"
+audit_logs,ip_address,TEXT,YES,,,,,"IP de origem"
+audit_logs,user_agent,TEXT,YES,,,,,"User agent"
+audit_logs,created_at,TIMESTAMP,NO,NOW(),,,YES,"Data da ação"
+ai_chat_history,id,UUID,NO,uuid_generate_v4(),YES,,,ID da conversa
+ai_chat_history,user_id,UUID,NO,,,"auth.users(id)",YES,Usuário
+ai_chat_history,message,TEXT,NO,,,,,"Mensagem do usuário"
+ai_chat_history,response,TEXT,NO,,,,,"Resposta da Val (IA)"
+ai_chat_history,area,TEXT,YES,,,,,"Área: social_media | paid_traffic | design | commercial | hr | finance"
+ai_chat_history,model_used,TEXT,YES,,,,,"Modelo usado: gpt-4 | gpt-3.5-turbo"
+ai_chat_history,tokens_used,INTEGER,YES,,,,,"Tokens consumidos"
+ai_chat_history,created_at,TIMESTAMP,NO,NOW(),,,YES,"Data da conversa"
+client_metrics,id,UUID,NO,uuid_generate_v4(),YES,,,ID da métrica
+client_metrics,client_id,UUID,NO,,,"clients(id)",YES,Cliente
+client_metrics,metric_type,TEXT,NO,,,,,"Tipo: social_media | paid_traffic | seo | etc"
+client_metrics,metric_date,DATE,NO,,,,,"Data da métrica"
+client_metrics,impressions,INTEGER,YES,,,,,"Impressões"
+client_metrics,reach,INTEGER,YES,,,,,"Alcance"
+client_metrics,engagement,INTEGER,YES,,,,,"Engajamento"
+client_metrics,clicks,INTEGER,YES,,,,,"Cliques"
+client_metrics,conversions,INTEGER,YES,,,,,"Conversões"
+client_metrics,cost,DECIMAL(12,2),YES,,,,,"Custo"
+client_metrics,revenue,DECIMAL(12,2),YES,,,,,"Receita"
+client_metrics,roi,DECIMAL(8,2),YES,,,,,"ROI (%)"
+client_metrics,metadata,JSONB,NO,'{}',,,,"Dados adicionais específicos"
+client_metrics,created_at,TIMESTAMP,NO,NOW(),,,,"Data de registro"
+files,id,UUID,NO,uuid_generate_v4(),YES,,,ID do arquivo
+files,uploaded_by,UUID,NO,,,"auth.users(id)",YES,Upload por
+files,client_id,UUID,YES,,,"clients(id)",YES,Cliente relacionado
+files,task_id,UUID,YES,,,"kanban_tasks(id)",YES,Tarefa relacionada
+files,file_name,TEXT,NO,,,,,"Nome do arquivo"
+files,file_type,TEXT,NO,,,,,"Tipo MIME"
+files,file_size,BIGINT,NO,,,,,"Tamanho em bytes"
+files,storage_path,TEXT,NO,,,,,"Caminho no storage"
+files,public_url,TEXT,YES,,,,,"URL pública (se público)"
+files,is_public,BOOLEAN,NO,false,,,,"Arquivo público?"
+files,created_at,TIMESTAMP,NO,NOW(),,,,"Data de upload"
+calendar_events,id,UUID,NO,uuid_generate_v4(),YES,,,ID do evento
+calendar_events,title,TEXT,NO,,,,,"Título do evento"
+calendar_events,description,TEXT,YES,,,,,"Descrição"
+calendar_events,start_date,TIMESTAMP,NO,,,,,"Data/hora de início"
+calendar_events,end_date,TIMESTAMP,NO,,,,,"Data/hora de término"
+calendar_events,all_day,BOOLEAN,NO,false,,,,"Evento de dia inteiro?"
+calendar_events,location,TEXT,YES,,,,,"Local"
+calendar_events,organizer_id,UUID,NO,,,"auth.users(id)",YES,Organizador
+calendar_events,client_id,UUID,YES,,,"clients(id)",YES,Cliente relacionado
+calendar_events,event_type,TEXT,NO,,,,,"Tipo: meeting | deadline | birthday | holiday | etc"
+calendar_events,reminder_minutes,INTEGER,YES,,,,,"Lembrete (minutos antes)"
+calendar_events,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+calendar_events,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+calendar_participants,id,UUID,NO,uuid_generate_v4(),YES,,,ID do participante
+calendar_participants,event_id,UUID,NO,,,"calendar_events(id)",YES,Evento
+calendar_participants,user_id,UUID,NO,,,"auth.users(id)",YES,Participante
+calendar_participants,status,TEXT,NO,'pending',,,,"Status: pending | accepted | declined"
+calendar_participants,added_at,TIMESTAMP,NO,NOW(),,,,"Data de convite"
+employee_requests,id,UUID,NO,uuid_generate_v4(),YES,,,ID da solicitação
+employee_requests,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_requests,request_type,TEXT,NO,,,,,"Tipo: home_office | vacation | time_off | expense | etc"
+employee_requests,start_date,DATE,YES,,,,,"Data de início"
+employee_requests,end_date,DATE,YES,,,,,"Data de término"
+employee_requests,description,TEXT,YES,,,,,"Descrição/Justificativa"
+employee_requests,amount,DECIMAL(12,2),YES,,,,,"Valor (para reembolsos)"
+employee_requests,status,TEXT,NO,'pending',,,,"Status: pending | approved | rejected"
+employee_requests,approved_by,UUID,YES,,,"auth.users(id)",YES,Aprovado por
+employee_requests,approved_at,TIMESTAMP,YES,,,,,"Data de aprovação/rejeição"
+employee_requests,rejection_reason,TEXT,YES,,,,,"Motivo da rejeição"
+employee_requests,created_at,TIMESTAMP,NO,NOW(),,,,"Data da solicitação"
+employee_requests,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+employee_achievements,id,UUID,NO,uuid_generate_v4(),YES,,,ID da conquista
+employee_achievements,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_achievements,achievement_type,TEXT,NO,,,,,"Tipo: first_task | streak_7 | level_up | top_performer | etc"
+employee_achievements,title,TEXT,NO,,,,,"Título da conquista"
+employee_achievements,description,TEXT,YES,,,,,"Descrição"
+employee_achievements,icon,TEXT,YES,,,,,"Ícone/badge"
+employee_achievements,points_awarded,INTEGER,NO,0,,,,"Pontos concedidos"
+employee_achievements,earned_at,TIMESTAMP,NO,NOW(),,,,"Data de conquista"
+employee_churn_predictions,id,UUID,NO,uuid_generate_v4(),YES,,,ID da predição
+employee_churn_predictions,employee_id,UUID,NO,,,"employees(id)",YES,Colaborador
+employee_churn_predictions,churn_probability,DECIMAL(5,2),NO,,,,,"Probabilidade de saída (0-100)"
+employee_churn_predictions,risk_level,TEXT,NO,,,,,"Nível de risco: low | medium | high"
+employee_churn_predictions,contributing_factors,TEXT[],YES,'{}',,,,"Fatores contribuintes"
+employee_churn_predictions,recommended_actions,TEXT[],YES,'{}',,,,"Ações recomendadas"
+employee_churn_predictions,prediction_date,DATE,NO,NOW(),,,,"Data da predição"
+employee_churn_predictions,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+client_satisfaction_surveys,id,UUID,NO,uuid_generate_v4(),YES,,,ID da pesquisa
+client_satisfaction_surveys,client_id,UUID,NO,,,"clients(id)",YES,Cliente
+client_satisfaction_surveys,nps_score,INTEGER,YES,,,,,"NPS Score (0-10)"
+client_satisfaction_surveys,satisfaction_score,INTEGER,YES,,,,,"Satisfação (1-5)"
+client_satisfaction_surveys,feedback,TEXT,YES,,,,,"Feedback textual"
+client_satisfaction_surveys,survey_type,TEXT,NO,,,,,"Tipo: monthly | quarterly | project_end"
+client_satisfaction_surveys,sent_at,TIMESTAMP,NO,NOW(),,,,"Data de envio"
+client_satisfaction_surveys,answered_at,TIMESTAMP,YES,,,,,"Data de resposta"
+client_satisfaction_surveys,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+ml_models,id,UUID,NO,uuid_generate_v4(),YES,,,ID do modelo ML
+ml_models,model_name,TEXT,NO,,,,,"Nome do modelo"
+ml_models,model_type,TEXT,NO,,,,,"Tipo: churn_prediction | lead_scoring | sentiment_analysis | etc"
+ml_models,version,TEXT,NO,,,,,"Versão do modelo"
+ml_models,accuracy,DECIMAL(5,2),YES,,,,,"Acurácia (%)"
+ml_models,training_data_count,INTEGER,YES,,,,,"Quantidade de dados de treino"
+ml_models,last_trained_at,TIMESTAMP,YES,,,,,"Última vez treinado"
+ml_models,is_active,BOOLEAN,NO,true,,,,"Modelo ativo?"
+ml_models,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+ml_models,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+system_settings,id,UUID,NO,uuid_generate_v4(),YES,,,ID da configuração
+system_settings,key,TEXT,NO,,,,,Chave única da configuração
+system_settings,value,JSONB,NO,,,,,"Valor (JSON)"
+system_settings,description,TEXT,YES,,,,,"Descrição"
+system_settings,is_public,BOOLEAN,NO,false,,,,"Configuração pública?"
+system_settings,created_at,TIMESTAMP,NO,NOW(),,,,"Data de criação"
+system_settings,updated_at,TIMESTAMP,NO,NOW(),,,,"Data de atualização"
+
+
+
+
+
+
+

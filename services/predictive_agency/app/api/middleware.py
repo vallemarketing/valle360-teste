@@ -1,0 +1,1 @@
+# Middlewares adicionais (placeholder)

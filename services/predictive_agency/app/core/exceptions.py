@@ -1,0 +1,2 @@
+class PredictiveAgencyError(Exception):
+    pass

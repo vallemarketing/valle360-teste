@@ -1,0 +1,54 @@
+═══════════════════════════════════════════════════════════════════════════
+                    🔑 ACESSOS FUNCIONANDO - VALLE 360
+═══════════════════════════════════════════════════════════════════════════
+
+✅ SUPER ADMIN (Você):
+   Email: guilherme@valleai.com.br
+   Senha: *Valle2307
+   Vai para: /admin/dashboard
+
+✅ COLABORADOR (Teste):
+   Email: admin@valleai.com.br
+   Senha: *Valle2307
+   Vai para: /colaborador/dashboard
+
+✅ CLIENTE (Criar agora):
+   Email: cliente@valleai.com.br
+   Senha: *Valle2307
+   Vai para: /cliente/dashboard
+
+═══════════════════════════════════════════════════════════════════════════
+
+🚀 PASSO A PASSO:
+
+1. Criar os 2 usuários no Supabase Dashboard:
+   - Authentication > Users > Add User
+   - Email: admin@valleai.com.br / Senha: *Valle2307
+   - Email: cliente@valleai.com.br / Senha: *Valle2307
+
+2. Fazer login:
+   http://localhost:3000/login
+
+3. PRONTO! Vai direto para área correta.
+
+═══════════════════════════════════════════════════════════════════════════
+
+O sistema AGORA reconhece automaticamente:
+- guilherme@valleai.com.br → Admin
+- admin@valleai.com.br → Colaborador  
+- cliente@valleai.com.br → Cliente
+
+SEM precisar de perfis, SEM complicação.
+
+═══════════════════════════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+
+
+

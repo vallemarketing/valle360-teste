@@ -1,0 +1,28 @@
+"use strict";(()=>{var e={};e.id=20505,e.ids=[20505],e.modules={72934:e=>{e.exports=require("next/dist/client/components/action-async-storage.external.js")},54580:e=>{e.exports=require("next/dist/client/components/request-async-storage.external.js")},45869:e=>{e.exports=require("next/dist/client/components/static-generation-async-storage.external.js")},20399:e=>{e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},30517:e=>{e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},78893:e=>{e.exports=require("buffer")},24335:(e,t,r)=>{r.r(t),r.d(t,{originalPathname:()=>b,patchFetch:()=>I,requestAsyncStorage:()=>v,routeModule:()=>h,serverHooks:()=>j,staticGenerationAsyncStorage:()=>k});var a={};r.r(a),r.d(a,{POST:()=>g,dynamic:()=>m});var s=r(49303),o=r(88716),n=r(60670),i=r(87070),l=r(20344),p=r(71615),c=r(54128),u=r(72586),d=r(51547);let m="force-dynamic";async function x(e){try{let e=(0,p.cookies)(),t=(0,l.createRouteHandlerClient)({cookies:()=>e}),{data:{user:r}}=await t.auth.getUser();if(r)return{user:r}}catch{}let t=e.headers.get("authorization")||e.headers.get("Authorization"),r=t?.startsWith("Bearer ")?t.slice(7):null;if(!r)return{user:null};let a="https://ikjgsqtykkhqimypacro.supabase.co",s="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlramdzcXR5a2tocWlteXBhY3JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTE4OTksImV4cCI6MjA3ODc4Nzg5OX0.vgVCpFIt-5ajFhcXg65dqrEw915pqW8fGZ8xgJxrnxI";if(!a||!s)return{user:null};let o=(0,c.eI)(a,s,{auth:{persistSession:!1,autoRefreshToken:!1,detectSessionInUrl:!1}}),{data:{user:n}}=await o.auth.getUser(r);return{user:n}}async function g(e){try{let t;let{user:r}=await x(e);if(!r)return i.NextResponse.json({error:"N\xe3o autorizado"},{status:401});let{type:a,params:s}=await e.json();switch(a){case"social":if(!s?.platform||!s?.topic)return i.NextResponse.json({error:"platform e topic s\xe3o obrigat\xf3rios"},{status:400});t=await (0,u.y3)({platform:s.platform,topic:s.topic,tone:s.tone||"professional",clientBrand:s.clientBrand,keywords:s.keywords});break;case"email":if(!s?.type||!s?.recipientName||!s?.context)return i.NextResponse.json({error:"type, recipientName e context s\xe3o obrigat\xf3rios"},{status:400});t=await (0,u.Jk)({type:s.type,recipientName:s.recipientName,recipientCompany:s.recipientCompany,context:s.context,tone:s.tone});break;case"job":if(!s?.title||!s?.department)return i.NextResponse.json({error:"title e department s\xe3o obrigat\xf3rios"},{status:400});t=await (0,u.pv)({title:s.title,department:s.department,level:s.level||"pleno",type:s.type||"clt",skills:s.skills,benefits:s.benefits,companyDescription:s.companyDescription});break;case"proposal":t=await y(s);break;case"report":t=await f(s);break;default:return i.NextResponse.json({error:"Tipo inv\xe1lido"},{status:400})}return i.NextResponse.json({success:!0,type:a,content:t,generatedAt:new Date().toISOString()})}catch(e){return console.error("Erro na API de gera\xe7\xe3o:",e),i.NextResponse.json({error:"Erro ao gerar conte\xfado",details:e.message},{status:500})}}async function y(e){let t=`Voc\xea \xe9 um especialista em vendas de servi\xe7os de marketing digital.
+Crie uma proposta comercial profissional e persuasiva.
+
+Retorne um JSON:
+{
+  "title": "T\xedtulo da proposta",
+  "introduction": "Par\xe1grafo de introdu\xe7\xe3o personalizado",
+  "problemAnalysis": "An\xe1lise do problema/necessidade do cliente",
+  "solution": "Nossa solu\xe7\xe3o proposta",
+  "services": [{ "name": "Servi\xe7o", "description": "Descri\xe7\xe3o", "value": 0 }],
+  "benefits": ["Lista de benef\xedcios"],
+  "timeline": "Prazo de implementa\xe7\xe3o",
+  "investment": { "total": 0, "payment": "Condi\xe7\xf5es de pagamento" },
+  "nextSteps": ["Pr\xf3ximos passos"],
+  "closing": "Par\xe1grafo de fechamento"
+}`;return(await (0,d.F)({task:"sales",json:!0,temperature:.7,maxTokens:1400,entityType:"proposal_generate",entityId:null,messages:[{role:"system",content:t},{role:"user",content:JSON.stringify(e)}]})).json||null}async function f(e){let t=`Voc\xea \xe9 um analista de dados de marketing.
+Crie um relat\xf3rio executivo baseado nos dados fornecidos.
+
+Retorne um JSON:
+{
+  "title": "T\xedtulo do relat\xf3rio",
+  "executiveSummary": "Resumo executivo (2-3 par\xe1grafos)",
+  "highlights": [{ "metric": "Nome", "value": "Valor", "trend": "up/down/stable", "analysis": "An\xe1lise" }],
+  "analysis": "An\xe1lise detalhada",
+  "recommendations": ["Lista de recomenda\xe7\xf5es"],
+  "nextSteps": ["Pr\xf3ximos passos sugeridos"],
+  "conclusion": "Conclus\xe3o"
+}`;return(await (0,d.F)({task:"analysis",json:!0,temperature:.5,maxTokens:1600,entityType:"report_generate",entityId:null,messages:[{role:"system",content:t},{role:"user",content:JSON.stringify(e)}]})).json||null}let h=new s.AppRouteRouteModule({definition:{kind:o.x.APP_ROUTE,page:"/api/ai/generate/route",pathname:"/api/ai/generate",filename:"route",bundlePath:"app/api/ai/generate/route"},resolvedPagePath:"C:\\Users\\User\\Downloads\\valle-360-main\\valle-360-main\\src\\app\\api\\ai\\generate\\route.ts",nextConfigOutput:"standalone",userland:a}),{requestAsyncStorage:v,staticGenerationAsyncStorage:k,serverHooks:j}=h,b="/api/ai/generate/route";function I(){return(0,n.patchFetch)({serverHooks:j,staticGenerationAsyncStorage:k})}}};var t=require("../../../../webpack-runtime.js");t.C(e);var r=e=>t(t.s=e),a=t.X(0,[89276,55972,54128,20958,72586],()=>r(24335));module.exports=a})();

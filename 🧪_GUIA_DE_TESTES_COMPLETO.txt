@@ -1,0 +1,364 @@
+╔════════════════════════════════════════════════════════════════════════════════════╗
+║                       🧪 GUIA DE TESTES - VALLE 360                                ║
+║                  TESTE TODAS AS FUNCIONALIDADES CRIADAS                            ║
+╚════════════════════════════════════════════════════════════════════════════════════╝
+
+
+📋 PREPARAÇÃO ANTES DE TESTAR:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+1. RODAR A NOVA MIGRATION:
+   
+   cd /Users/imac/Desktop/N8N/valle-360
+   
+   # Opção 1: Reset completo (recomendado)
+   supabase db reset
+   
+   # OU Opção 2: Rodar só a nova migration
+   supabase migration up
+
+2. INSTALAR DEPENDÊNCIA (se ainda não tiver):
+   
+   npm install framer-motion
+   
+3. INICIAR O SERVIDOR:
+   
+   npm run dev
+   
+4. ABRIR NO NAVEGADOR:
+   
+   http://localhost:3000
+
+
+🔐 LOGIN DE TESTE:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Email: admin@valleai.com.br
+Senha: *Valle2307
+
+(Este usuário já existe e tem acesso de colaborador)
+
+
+✅ CHECKLIST DE TESTES - 6 PÁGINAS:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 1️⃣  DASHBOARD (/colaborador/dashboard)                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/dashboard
+
+[ ] VERIFICAR:
+    [ ] Header com nível e pontos aparece
+    [ ] Progress bar para próximo nível anima
+    [ ] 4 Cards principais carregam:
+        [ ] Sequência (Streak)
+        [ ] Ranking (posição)
+        [ ] Tarefas
+        [ ] Bem-Estar
+    [ ] Scores detalhados aparecem (3 barras coloridas)
+    [ ] Feed de mensagens da Val (pode estar vazio)
+    [ ] Feed de reconhecimentos (pode estar vazio)
+    [ ] 4 Quick links funcionam (clique em cada um):
+        [ ] Kanban
+        [ ] Gamificação
+        [ ] Fidelidade
+        [ ] Minhas Metas
+
+⚠️  SE DER ERRO:
+    - Abra o console (F12) e copie a mensagem de erro
+    - Verifique se o usuário tem dados em employee_gamification_scores
+
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 2️⃣  GAMIFICAÇÃO (/colaborador/gamificacao)                                     │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/gamificacao
+
+[ ] VERIFICAR:
+    [ ] Header amarelo/laranja/vermelho (gradiente) aparece
+    [ ] Nível e pontos grandes visíveis
+    [ ] Progress bar para próximo nível anima
+    [ ] 3 TABS funcionam:
+        
+        TAB "VISÃO GERAL":
+        [ ] 3 Cards: Sequência, Badges, Posição
+        [ ] Scores com barras coloridas (3)
+        [ ] Últimas conquistas desbloqueadas
+        
+        TAB "CONQUISTAS":
+        [ ] 10 conquistas aparecem
+        [ ] Conquistas desbloqueadas têm check verde
+        [ ] Conquistas bloqueadas têm cadeado
+        [ ] Progress bars individuais funcionam
+        [ ] Pontos de cada conquista visíveis
+        
+        TAB "RANKING":
+        [ ] Top 10 aparece
+        [ ] Posição #1 tem coroa dourada 👑
+        [ ] Posição #2 tem medalha de prata 🥈
+        [ ] Posição #3 tem medalha de bronze 🥉
+        [ ] Sua posição está destacada (se estiver no top 10)
+
+⚠️  SE DER ERRO:
+    - Verifique se tem dados em employee_gamification_scores
+    - Console (F12) deve mostrar o erro
+
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 3️⃣  FIDELIDADE (/colaborador/fidelidade)                                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/fidelidade
+
+[ ] VERIFICAR:
+    [ ] Header verde aparece
+    [ ] 3 Cards de estatísticas:
+        [ ] Total Indicado: 0 clientes (inicialmente)
+        [ ] Total Ganho: R$ 0,00
+        [ ] Próximo Pagamento: R$ 0,00
+    
+    [ ] SEU CUPOM EXCLUSIVO:
+        [ ] Código no formato VALLE-NOME-XXXXXX aparece
+        [ ] Botão "Copiar" funciona (mostra "Copiado!")
+        [ ] 4 Botões de compartilhamento:
+            [ ] WhatsApp abre (pode testar)
+            [ ] Email abre cliente de email
+            [ ] Copiar Link funciona
+            [ ] Mais (placeholder por enquanto)
+    
+    [ ] COMO FUNCIONA:
+        [ ] 4 passos explicados aparecem
+        [ ] Visual azul claro com números
+    
+    [ ] HISTÓRICO:
+        [ ] Mostra "Nenhuma indicação ainda" (inicialmente)
+        [ ] Ícone de usuários aparece
+
+⚠️  SE DER ERRO:
+    - O sistema cria o cupom automaticamente na primeira vez
+    - Verifique console se houver erro na criação
+
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 4️⃣  NOTIFICAÇÕES (/colaborador/notificacoes)                                   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/notificacoes
+
+[ ] VERIFICAR:
+    [ ] Header com sino azul aparece
+    [ ] Contador de não lidas (pode ser 0)
+    [ ] 4 Botões de filtro:
+        [ ] Todas
+        [ ] Não lidas
+        [ ] Reconhecimentos
+        [ ] Mensagens
+    [ ] Botão "Marcar todas como lidas" (se houver não lidas)
+    
+    [ ] NOTIFICAÇÕES:
+        [ ] Lista aparece (pode estar vazia)
+        [ ] Se tiver notificações:
+            [ ] Ícones coloridos por tipo
+            [ ] Títulos e mensagens legíveis
+            [ ] Timestamps em PT-BR
+            [ ] Click marca como lida
+            [ ] Não lidas têm visual diferente (gradiente azul)
+
+⚠️  SE ESTIVER VAZIO:
+    - Normal! Sistema precisa gerar notificações
+    - Teste os filtros mesmo assim
+
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 5️⃣  MINHAS METAS (/colaborador/metas)                                          │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/metas
+
+[ ] VERIFICAR:
+    [ ] Header com alvo azul aparece
+    [ ] Botão "Nova Meta" visível
+    
+    [ ] PLANO DE CARREIRA:
+        [ ] Card roxo/índigo aparece (se houver plano)
+        [ ] Nível Atual e Meta visíveis
+        [ ] Progress bar anima
+        [ ] "Próximos passos sugeridos pela IA" (se houver)
+    
+    [ ] METAS POR TIPO:
+        [ ] Curto Prazo (verde)
+        [ ] Médio Prazo (amarelo)
+        [ ] Longo Prazo (azul)
+    [ ] CADA META:
+        [ ] Título e descrição
+        [ ] Progress bar colorida
+        [ ] Dias restantes ou status
+        [ ] % de conclusão
+
+⚠️  SE NÃO HOUVER DADOS:
+    - Mostrará apenas o header
+    - Normal para novo usuário
+
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 6️⃣  MEU DESEMPENHO (/colaborador/desempenho)                                   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+URL: http://localhost:3000/colaborador/desempenho
+
+[ ] VERIFICAR:
+    [ ] Header com gráfico azul aparece
+    [ ] 3 Botões de período: 7d, 30d, 90d
+    [ ] Filtro funciona (click em cada um)
+    
+    [ ] TENDÊNCIA GERAL:
+        [ ] Card grande com ícone (📈 ou 📉 ou ➡️)
+        [ ] Cor muda conforme tendência
+        [ ] Mensagem motivacional aparece
+    
+    [ ] 4 SCORES PRINCIPAIS:
+        [ ] Produtividade (azul)
+        [ ] Qualidade (verde)
+        [ ] Colaboração (roxo)
+        [ ] Bem-Estar (laranja)
+        [ ] Cada um com número grande e barra
+    
+    [ ] ANÁLISE QUALITATIVA:
+        [ ] Pontos Fortes (lista verde)
+        [ ] Áreas para Desenvolver (lista amarela)
+    
+    [ ] RECOMENDAÇÕES DA IA:
+        [ ] Cards azul/roxo com sugestões
+        [ ] Títulos e descrições legíveis
+    
+    [ ] FEEDBACK 360º:
+        [ ] Aparece se houver feedback
+        [ ] Nome do revisor
+        [ ] Pontos fortes e áreas de melhoria
+
+⚠️  SE SCORES ESTIVEREM EM 0:
+    - Normal para novo usuário
+    - Sistema precisa calcular com uso
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+🎯 TESTES DE NAVEGAÇÃO:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+[ ] TESTAR NAVEGAÇÃO ENTRE PÁGINAS:
+    
+    Partindo do Dashboard:
+    [ ] Click em "Gamificação" → vai para /colaborador/gamificacao
+    [ ] Click em "Fidelidade" → vai para /colaborador/fidelidade
+    [ ] Click em "Minhas Metas" → vai para /colaborador/metas
+    
+    No header (se tiver navegação):
+    [ ] Voltar para Dashboard funciona
+    [ ] Links da sidebar funcionam (se houver)
+
+
+🐛 BUGS COMUNS E SOLUÇÕES:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+❌ ERRO: "Cannot find module 'framer-motion'"
+   ✅ SOLUÇÃO: npm install framer-motion
+
+❌ ERRO: "employee_referral_program doesn't exist"
+   ✅ SOLUÇÃO: supabase db reset
+
+❌ ERRO: "Cannot read property 'id' of null"
+   ✅ SOLUÇÃO: Usuário não tem registro em employees
+   
+❌ PÁGINA EM BRANCO (nada aparece)
+   ✅ SOLUÇÃO: Abrir console (F12) e verificar erro
+
+❌ DADOS NÃO APARECEM (cards vazios)
+   ✅ SOLUÇÃO: Normal! Usuário novo não tem dados ainda
+   
+❌ NAVEGAÇÃO NÃO FUNCIONA
+   ✅ SOLUÇÃO: Verificar se URLs estão corretas
+
+
+📊 CHECKLIST DE VISUAL E UX:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+[ ] CORES:
+    [ ] Azul escuro (#0f1b35) aparece nos headers
+    [ ] Azul claro (#4370d1) aparece nos botões e CTAs
+    [ ] Gradientes estão suaves
+    [ ] Cores de badges estão corretas
+
+[ ] ANIMAÇÕES:
+    [ ] Progress bars animam ao carregar
+    [ ] Hover effects funcionam (botões crescem levemente)
+    [ ] Transições de página suaves
+    [ ] Cards entram com fade-in
+
+[ ] RESPONSIVIDADE:
+    [ ] Testar em tela menor (resize browser)
+    [ ] Cards empilham em mobile
+    [ ] Textos não quebram
+    [ ] Botões permanecem clicáveis
+
+[ ] TYPOGRAPHY:
+    [ ] Títulos estão bold/semibold
+    [ ] Textos legíveis
+    [ ] Tamanhos proporcionais
+
+
+📝 RELATÓRIO DE BUGS:
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Use este formato para reportar bugs:
+
+PÁGINA: [nome da página]
+URL: [URL completa]
+ERRO: [descrição do que aconteceu]
+ESPERADO: [o que deveria acontecer]
+CONSOLE: [mensagem do console, se houver]
+PRINT: [se possível, tire print]
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+APÓS TESTAR TUDO:
+
+✅ Se tudo funcionar:
+   → Me avise: "Tudo OK, pode continuar!"
+   → Vou implementar: Kanban + Menu Perfil + Seeds
+
+⚠️  Se houver bugs:
+   → Me avise qual página e o erro
+   → Vou corrigir antes de continuar
+
+❓ Se tiver dúvidas:
+   → Pergunte! Estou aqui para ajudar
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+🚀 COMECE TESTANDO NESTA ORDEM:
+
+1. Dashboard (visão geral)
+2. Gamificação (mais visual)
+3. Fidelidade (funcionalidade única)
+4. Notificações (pode estar vazio)
+5. Metas (pode estar vazio)
+6. Desempenho (analytics)
+
+
+Boa sorte nos testes! 🎉
+
+
+
+
+
+
+
+
+
+
+

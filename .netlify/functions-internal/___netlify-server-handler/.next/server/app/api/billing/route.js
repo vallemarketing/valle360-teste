@@ -1,0 +1,62 @@
+"use strict";(()=>{var e={};e.id=87235,e.ids=[87235],e.modules={20399:e=>{e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},30517:e=>{e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},78877:(e,a,t)=>{t.r(a),t.d(a,{originalPathname:()=>h,patchFetch:()=>O,requestAsyncStorage:()=>v,routeModule:()=>x,serverHooks:()=>y,staticGenerationAsyncStorage:()=>f});var o={};t.r(o),t.d(o,{GET:()=>p,POST:()=>_,PUT:()=>g,dynamic:()=>m});var r=t(49303),n=t(88716),s=t(60670),i=t(87070),c=t(1926);let l=[{days_overdue:1,action:"reminder",channel:"email",message_template:"gentle_reminder"},{days_overdue:3,action:"reminder",channel:"whatsapp",message_template:"friendly_reminder"},{days_overdue:7,action:"reminder",channel:"all",message_template:"urgent_reminder"},{days_overdue:15,action:"call",channel:"phone",message_template:"phone_script"},{days_overdue:30,action:"legal_notice",channel:"email",message_template:"formal_notice"},{days_overdue:45,action:"legal_escalation",channel:"all",message_template:"legal_escalation",escalate_after_failures:2}];class u{async processOverdueInvoices(){let e={processed:0,reminders_sent:0,escalated:0};try{let{data:a}=await c.O.from("invoices").select("*").eq("status","overdue").eq("escalated_to_legal",!1).order("due_date",{ascending:!0});if(!a)return e;for(let t of a){let a=this.calculateDaysOverdue(t.due_date),o=this.getApplicableRule(a);if(o){let a=await this.executeCollectionAction(t,o);e.processed++,"reminder"===a.type?e.reminders_sent++:"escalation"===a.type&&e.escalated++}}return e}catch(a){return console.error("Erro ao processar cobran\xe7as:",a),e}}calculateDaysOverdue(e){let a=new Date(e);return Math.ceil((new Date().getTime()-a.getTime())/864e5)}getApplicableRule(e){return this.collectionRules.filter(a=>e>=a.days_overdue).sort((e,a)=>a.days_overdue-e.days_overdue)[0]||null}async executeCollectionAction(e,a){try{let{data:t}=await c.O.from("collection_actions").select("*").eq("invoice_id",e.id).eq("action_type",a.action).gte("created_at",new Date(Date.now()-864e5).toISOString());if(t&&t.length>0)return{type:"skipped",success:!0};let o={invoice_id:e.id,action_type:a.action,status:"pending",scheduled_for:new Date().toISOString(),created_at:new Date().toISOString()};if(await c.O.from("collection_actions").insert(o),"legal_escalation"===a.action)return await this.escalateToLegal(e),{type:"escalation",success:!0};let r=this.generateCollectionMessage(e,a);return await this.sendCollectionMessage(e,a.channel,r),await c.O.from("invoices").update({reminder_count:(e.reminder_count||0)+1,last_reminder_at:new Date().toISOString()}).eq("id",e.id),{type:"reminder",success:!0}}catch(e){return console.error("Erro ao executar a\xe7\xe3o de cobran\xe7a:",e),{type:"error",success:!1}}}generateCollectionMessage(e,a){let t={gentle_reminder:`Ol\xe1 ${e.client_name}!
+
+Esperamos que esteja tudo bem. 😊
+
+Gostar\xedamos de lembrar que a fatura no valor de R$ ${e.amount.toLocaleString("pt-BR")} venceu ontem.
+
+Se j\xe1 realizou o pagamento, por favor desconsidere esta mensagem.
+
+Caso precise de ajuda ou tenha alguma d\xfavida, estamos \xe0 disposi\xe7\xe3o!
+
+Abra\xe7os,
+Equipe Valle Group`,friendly_reminder:`Ol\xe1 ${e.client_name}!
+
+Passando para lembrar sobre a fatura de R$ ${e.amount.toLocaleString("pt-BR")} que est\xe1 pendente h\xe1 alguns dias.
+
+Sabemos que imprevistos acontecem! Se precisar de um prazo extra ou parcelamento, \xe9 s\xf3 nos avisar que encontramos uma solu\xe7\xe3o juntos.
+
+Aguardamos seu retorno!
+
+Equipe Valle Group`,urgent_reminder:`Prezado(a) ${e.client_name},
+
+Identificamos que a fatura no valor de R$ ${e.amount.toLocaleString("pt-BR")} encontra-se vencida h\xe1 7 dias.
+
+Para evitar a suspens\xe3o dos servi\xe7os, solicitamos a regulariza\xe7\xe3o do pagamento o mais breve poss\xedvel.
+
+Caso j\xe1 tenha efetuado o pagamento, por favor nos envie o comprovante.
+
+Se precisar de condi\xe7\xf5es especiais, entre em contato conosco.
+
+Atenciosamente,
+Financeiro - Valle Group`,formal_notice:`NOTIFICA\xc7\xc3O EXTRAJUDICIAL
+
+Prezado(a) ${e.client_name},
+
+Pelo presente instrumento, NOTIFICAMOS V.Sa. que a fatura no valor de R$ ${e.amount.toLocaleString("pt-BR")}, vencida h\xe1 30 dias, permanece em aberto.
+
+Solicitamos a regulariza\xe7\xe3o no prazo de 5 (cinco) dias \xfateis, sob pena de ado\xe7\xe3o das medidas legais cab\xedveis, incluindo:
+- Inclus\xe3o nos \xf3rg\xe3os de prote\xe7\xe3o ao cr\xe9dito (SPC/Serasa)
+- Protesto do t\xedtulo
+- Cobran\xe7a judicial
+
+Para negocia\xe7\xe3o ou esclarecimentos, entre em contato pelo e-mail financeiro@vallegroup.com.br
+
+Atenciosamente,
+Departamento Jur\xeddico - Valle Group`,phone_script:`[ROTEIRO PARA LIGA\xc7\xc3O]
+
+1. Apresenta\xe7\xe3o: "Ol\xe1, aqui \xe9 [nome] da Valle Group"
+2. Confirmar se est\xe1 falando com: ${e.client_name}
+3. Informar: "Estou entrando em contato sobre a fatura de R$ ${e.amount.toLocaleString("pt-BR")} que est\xe1 pendente"
+4. Ouvir o cliente
+5. Oferecer op\xe7\xf5es:
+   - Pagamento \xe0 vista com desconto
+   - Parcelamento em at\xe9 3x
+   - Nova data de vencimento
+6. Registrar resultado da liga\xe7\xe3o`,legal_escalation:`ENCAMINHAMENTO AO JUR\xcdDICO
+
+Cliente: ${e.client_name}
+Valor: R$ ${e.amount.toLocaleString("pt-BR")}
+Dias em atraso: ${this.calculateDaysOverdue(e.due_date)}
+
+Hist\xf3rico de cobran\xe7as realizadas sem sucesso.
+Solicita-se in\xedcio de procedimento de cobran\xe7a extrajudicial/judicial.`};return t[a.message_template]||t.gentle_reminder}async sendCollectionMessage(e,a,t){console.log(`[COBRAN\xc7A] Enviando ${a} para ${e.client_email}:`,t.substring(0,100)),await c.O.from("message_logs").insert({type:"collection",channel:a,recipient:e.client_email,subject:`Cobran\xe7a - Fatura Valle Group`,content:t,invoice_id:e.id,sent_at:new Date().toISOString()})}async escalateToLegal(e){try{await c.O.from("invoices").update({escalated_to_legal:!0,escalated_at:new Date().toISOString()}).eq("id",e.id),await c.O.from("legal_cases").insert({type:"collection",client_name:e.client_name,client_email:e.client_email,amount:e.amount,invoice_id:e.id,days_overdue:this.calculateDaysOverdue(e.due_date),status:"pending",priority:"high",description:`Cobran\xe7a de fatura vencida h\xe1 ${this.calculateDaysOverdue(e.due_date)} dias. Valor: R$ ${e.amount.toLocaleString("pt-BR")}`,created_at:new Date().toISOString()});try{let{data:a}=await c.O.from("user_profiles").select("user_id, user_type").in("user_type",["super_admin","admin"]),t=(a||[]).map(e=>e.user_id).filter(Boolean).map(e=>String(e));t.length>0&&await c.O.from("notifications").insert(t.map(a=>({user_id:a,type:"legal_case",title:"Novo caso de cobran\xe7a",message:`Cliente ${e.client_name} escalado para cobran\xe7a jur\xeddica.`,link:"/admin/financeiro",metadata:{invoice_id:e.id,target_role:"juridico"},is_read:!1,created_at:new Date().toISOString()})))}catch{}}catch(e){console.error("Erro ao escalar para jur\xeddico:",e)}}async getInvoices(e){try{let a=c.O.from("invoices").select("*").order("due_date",{ascending:!0});e?.status&&(a=a.eq("status",e.status)),e?.client_id&&(a=a.eq("client_id",e.client_id)),e?.overdue_only&&(a=a.eq("status","overdue"));let{data:t,error:o}=await a;if(o)return console.error("Erro ao buscar faturas:",o),[];return t||[]}catch(e){return console.error("Erro ao buscar faturas:",e),[]}}async markAsPaid(e,a){try{let{error:t}=await c.O.from("invoices").update({status:"paid",paid_at:new Date().toISOString(),payment_method:a?.payment_method}).eq("id",e);if(t)return console.error("Erro ao marcar como pago:",t),!1;return!0}catch(e){return console.error("Erro ao marcar como pago:",e),!1}}async updateOverdueStatus(){try{let e=new Date().toISOString().split("T")[0],{data:a,error:t}=await c.O.from("invoices").update({status:"overdue"}).eq("status","pending").lt("due_date",e).select();if(t)return console.error("Erro ao atualizar status:",t),0;return a?.length||0}catch(e){return console.error("Erro ao atualizar status:",e),0}}async generateDelinquencyReport(){try{let{data:e}=await c.O.from("invoices").select("*").eq("status","overdue");if(!e)return{total_overdue:0,total_amount:0,by_age:{},top_delinquents:[]};let a={"1-7":{count:0,amount:0},"8-15":{count:0,amount:0},"16-30":{count:0,amount:0},"31-60":{count:0,amount:0},"60+":{count:0,amount:0}},t=[];for(let o of e){let e=this.calculateDaysOverdue(o.due_date),r="60+";e<=7?r="1-7":e<=15?r="8-15":e<=30?r="16-30":e<=60&&(r="31-60"),a[r].count++,a[r].amount+=o.amount,t.push({client_name:o.client_name,amount:o.amount,days:e})}return{total_overdue:e.length,total_amount:e.reduce((e,a)=>e+a.amount,0),by_age:a,top_delinquents:t.sort((e,a)=>a.amount-e.amount).slice(0,10)}}catch(e){return console.error("Erro ao gerar relat\xf3rio:",e),{total_overdue:0,total_amount:0,by_age:{},top_delinquents:[]}}}constructor(){this.collectionRules=l}}let d=new u,m="force-dynamic";async function p(e){try{let{searchParams:a}=new URL(e.url),t=a.get("action"),o=a.get("status")||void 0,r=a.get("client_id")||void 0,n="true"===a.get("overdue_only");if("delinquency_report"===t){let e=await d.generateDelinquencyReport();return i.NextResponse.json({success:!0,report:e})}let s=await d.getInvoices({status:o,client_id:r,overdue_only:n});return i.NextResponse.json({success:!0,invoices:s})}catch(e){return console.error("Erro ao buscar faturas:",e),i.NextResponse.json({success:!1,error:"Erro ao buscar faturas"},{status:500})}}async function _(e){try{let{action:a,...t}=await e.json();if("process_overdue"===a){let e=await d.processOverdueInvoices();return i.NextResponse.json({success:!0,result:e})}if("update_overdue_status"===a){let e=await d.updateOverdueStatus();return i.NextResponse.json({success:!0,updated_count:e})}let o={client_id:t.client_id,client_name:t.client_name,client_email:t.client_email,amount:t.amount,due_date:t.due_date,status:"pending",items:t.items||[],reminder_count:0,created_at:new Date().toISOString()},{data:r,error:n}=await c.O.from("invoices").insert(o).select().single();if(n)return i.NextResponse.json({success:!1,error:"Erro ao criar fatura"},{status:500});return i.NextResponse.json({success:!0,invoice:r})}catch(e){return console.error("Erro na API de billing:",e),i.NextResponse.json({success:!1,error:"Erro ao processar requisi\xe7\xe3o"},{status:500})}}async function g(e){try{let{id:a,action:t,...o}=await e.json();if(!a)return i.NextResponse.json({success:!1,error:"ID da fatura \xe9 obrigat\xf3rio"},{status:400});if("mark_paid"===t){if(!await d.markAsPaid(a,{payment_method:o.payment_method,transaction_id:o.transaction_id}))return i.NextResponse.json({success:!1,error:"Erro ao marcar como pago"},{status:500});return i.NextResponse.json({success:!0,message:"Fatura marcada como paga"})}let{error:r}=await c.O.from("invoices").update(o).eq("id",a);if(r)return i.NextResponse.json({success:!1,error:"Erro ao atualizar fatura"},{status:500});return i.NextResponse.json({success:!0,message:"Fatura atualizada"})}catch(e){return console.error("Erro ao atualizar fatura:",e),i.NextResponse.json({success:!1,error:"Erro ao atualizar fatura"},{status:500})}}let x=new r.AppRouteRouteModule({definition:{kind:n.x.APP_ROUTE,page:"/api/billing/route",pathname:"/api/billing",filename:"route",bundlePath:"app/api/billing/route"},resolvedPagePath:"C:\\Users\\User\\Downloads\\valle-360-main\\valle-360-main\\src\\app\\api\\billing\\route.ts",nextConfigOutput:"standalone",userland:o}),{requestAsyncStorage:v,staticGenerationAsyncStorage:f,serverHooks:y}=x,h="/api/billing/route";function O(){return(0,s.patchFetch)({serverHooks:y,staticGenerationAsyncStorage:f})}},1926:(e,a,t)=>{t.d(a,{O:()=>s});var o=t(54128);let r="https://ikjgsqtykkhqimypacro.supabase.co",n="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlramdzcXR5a2tocWlteXBhY3JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTE4OTksImV4cCI6MjA3ODc4Nzg5OX0.vgVCpFIt-5ajFhcXg65dqrEw915pqW8fGZ8xgJxrnxI";r&&n||console.error("❌ ERRO CR\xcdTICO: Vari\xe1veis de ambiente NEXT_PUBLIC_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_ANON_KEY n\xe3o encontradas!");let s=(0,o.eI)(r||"https://setup-missing.supabase.co",n||"setup-missing",{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}})}};var a=require("../../../webpack-runtime.js");a.C(e);var t=e=>a(a.s=e),o=a.X(0,[89276,55972,54128],()=>t(78877));module.exports=o})();

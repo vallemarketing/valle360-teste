@@ -1,0 +1,101 @@
+# ==================================
+# DOCKER COMPOSE - Development Mode
+# ==================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # Next.js Development Server
+  # ==========================================
+  valle360-dev:
+    container_name: valle360-dev
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WATCHPACK_POLLING=true
+    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    networks:
+      - valle360-network
+    restart: unless-stopped
+
+  # ==========================================
+  # PostgreSQL (Development Database)
+  # ==========================================
+  postgres-dev:
+    container_name: valle360-postgres-dev
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: valle360_dev
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - valle360-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Redis (Development Cache)
+  # ==========================================
+  redis-dev:
+    container_name: valle360-redis-dev
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - valle360-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ==========================================
+  # Mailhog (Email Testing)
+  # ==========================================
+  mailhog:
+    container_name: valle360-mailhog
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - valle360-network
+    restart: unless-stopped
+
+networks:
+  valle360-network:
+    driver: bridge
+    name: valle360-dev-network
+
+volumes:
+  postgres-dev-data:
+    name: valle360-postgres-dev-data
+  redis-dev-data:
+    name: valle360-redis-dev-data
+
+
+
+
+
+
+
+

@@ -1,0 +1,25 @@
+"use strict";(()=>{var e={};e.id=52627,e.ids=[52627],e.modules={72934:e=>{e.exports=require("next/dist/client/components/action-async-storage.external.js")},54580:e=>{e.exports=require("next/dist/client/components/request-async-storage.external.js")},45869:e=>{e.exports=require("next/dist/client/components/static-generation-async-storage.external.js")},20399:e=>{e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},30517:e=>{e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},76182:(e,r,s)=>{s.r(r),s.d(r,{originalPathname:()=>y,patchFetch:()=>v,requestAsyncStorage:()=>_,routeModule:()=>c,serverHooks:()=>g,staticGenerationAsyncStorage:()=>f});var t={};s.r(t),s.d(t,{GET:()=>d});var i=s(49303),a=s(88716),o=s(60670),n=s(87070),l=s(90176),u=s(71615),p=s(67721);async function m(){let e=(0,u.cookies)(),r=(0,p.createServerClient)("https://ikjgsqtykkhqimypacro.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlramdzcXR5a2tocWlteXBhY3JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTE4OTksImV4cCI6MjA3ODc4Nzg5OX0.vgVCpFIt-5ajFhcXg65dqrEw915pqW8fGZ8xgJxrnxI",{cookies:{get:r=>e.get(r)?.value}}),{data:{user:s}}=await r.auth.getUser();return s}async function d(e){try{let r=await m();if(!r)return n.NextResponse.json({error:"N\xe3o autorizado"},{status:401});let s=(0,l.t)(),{searchParams:t}=new URL(e.url),i=t.get("context")||"all",a=t.get("groupId"),o=t.get("q")||"",u=[],{data:p}=await s.from("user_profiles").select("id, user_type, is_super_admin").eq("user_id",r.id).single(),d=p?.user_type||"employee";if(p?.is_super_admin,"group"===i&&a){let{data:e}=await s.from("group_members").select(`
+          user_id,
+          user_profiles!inner (
+            id,
+            user_id,
+            full_name,
+            email,
+            avatar_url,
+            user_type,
+            is_active
+          )
+        `).eq("group_id",a).eq("is_active",!0);e&&(u=e.filter(e=>e.user_profiles?.is_active!==!1).map(e=>({id:e.user_profiles.id,userId:e.user_profiles.user_id,name:e.user_profiles.full_name||"Usu\xe1rio",email:e.user_profiles.email||"",avatarUrl:e.user_profiles.avatar_url,userType:e.user_profiles.user_type||"employee"})))}else if("client"===d){let{data:e}=await s.from("clients").select("id").eq("user_id",r.id).maybeSingle();if(e?.id){let{data:r}=await s.from("employee_client_assignments").select(`
+            role,
+            employees!inner (
+              user_id,
+              user_profiles!inner (
+                id,
+                user_id,
+                full_name,
+                email,
+                avatar_url,
+                user_type
+              )
+            )
+          `).eq("client_id",e.id).eq("is_active",!0).is("removed_at",null);r&&(u=r.map(e=>({id:e.employees?.user_profiles?.id,userId:e.employees?.user_profiles?.user_id,name:e.employees?.user_profiles?.full_name||"Profissional",email:e.employees?.user_profiles?.email||"",avatarUrl:e.employees?.user_profiles?.avatar_url,role:e.role,userType:e.employees?.user_profiles?.user_type||"employee"})).filter(e=>e.id))}}else{let{data:e}=await s.from("user_profiles").select("id, user_id, full_name, email, avatar_url, user_type").eq("is_active",!0).neq("user_id",r.id).order("full_name");e&&(u=e.map(e=>({id:e.id,userId:e.user_id,name:e.full_name||"Usu\xe1rio",email:e.email||"",avatarUrl:e.avatar_url,userType:e.user_type||"employee"})))}if(o){let e=o.toLowerCase();u=u.filter(r=>r.name.toLowerCase().includes(e)||r.email.toLowerCase().includes(e)||r.role?.toLowerCase().includes(e))}return u=u.slice(0,20),n.NextResponse.json({success:!0,users:u,total:u.length})}catch(e){return console.error("[Mentions API] Erro:",e),n.NextResponse.json({success:!1,error:e.message||"Erro interno"},{status:500})}}let c=new i.AppRouteRouteModule({definition:{kind:a.x.APP_ROUTE,page:"/api/messaging/mentions/route",pathname:"/api/messaging/mentions",filename:"route",bundlePath:"app/api/messaging/mentions/route"},resolvedPagePath:"C:\\Users\\User\\Downloads\\valle-360-main\\valle-360-main\\src\\app\\api\\messaging\\mentions\\route.ts",nextConfigOutput:"standalone",userland:t}),{requestAsyncStorage:_,staticGenerationAsyncStorage:f,serverHooks:g}=c,y="/api/messaging/mentions/route";function v(){return(0,o.patchFetch)({serverHooks:g,staticGenerationAsyncStorage:f})}},90176:(e,r,s)=>{s.d(r,{t:()=>i});var t=s(54128);function i(){let e="https://ikjgsqtykkhqimypacro.supabase.co",r=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!e||!r)throw Error("Supabase admin n\xe3o configurado (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");return(0,t.eI)(e,r,{auth:{persistSession:!1,autoRefreshToken:!1,detectSessionInUrl:!1}})}}};var r=require("../../../../webpack-runtime.js");r.C(e);var s=e=>r(r.s=e),t=r.X(0,[89276,55972,54128,39702],()=>s(76182));module.exports=t})();

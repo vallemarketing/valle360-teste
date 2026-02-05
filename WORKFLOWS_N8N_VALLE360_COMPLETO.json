@@ -1,0 +1,240 @@
+{
+  "name": "Valle 360 - Workflows Completos",
+  "workflows": [
+    {
+      "name": "1. Auto Lead Scoring & SDR AI",
+      "description": "Quando um novo lead é criado, faz scoring automático e inicia sequência de follow-up",
+      "trigger": "Supabase Trigger",
+      "steps": [
+        "Lead criado no Supabase",
+        "Calcular score (budget, fit, urgência)",
+        "Inserir em lead_scoring_history",
+        "Se score >= 70: criar reminder para comercial",
+        "Se score < 40: colocar em nurturing",
+        "Enviar primeira mensagem (WhatsApp ou Email)",
+        "Agendar follow-ups automáticos"
+      ],
+      "n8n_nodes": [
+        {"type": "Supabase Trigger", "table": "leads", "event": "INSERT"},
+        {"type": "Function", "name": "Calculate Lead Score"},
+        {"type": "Supabase", "operation": "INSERT", "table": "lead_scoring_history"},
+        {"type": "IF", "condition": "score >= 70"},
+        {"type": "Supabase", "operation": "INSERT", "table": "sales_reminders"},
+        {"type": "HTTP Request", "url": "WhatsApp API"},
+        {"type": "Schedule", "interval": "2 days"}
+      ]
+    },
+    {
+      "name": "2. Detecção de Churn de Clientes",
+      "description": "Monitora sinais de churn e cria alertas proativos",
+      "trigger": "Schedule Daily",
+      "steps": [
+        "Buscar clientes com: NPS < 7, reclamações recentes, atraso pagamento",
+        "Calcular churn_risk_score",
+        "Inserir em ml_client_behavior_patterns",
+        "Se risco > 70: criar alerta crítico",
+        "Criar action_item para gestor de conta",
+        "Enviar notificação Slack/Email"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 9 * * *"},
+        {"type": "Supabase", "operation": "SELECT", "query": "clients com sinais churn"},
+        {"type": "Function", "name": "Calculate Churn Risk"},
+        {"type": "IF", "condition": "churn_risk > 70"},
+        {"type": "Supabase", "operation": "INSERT", "table": "realtime_alerts"},
+        {"type": "Slack", "operation": "Send Message"}
+      ]
+    },
+    {
+      "name": "3. Auto Upsell Suggestions",
+      "description": "IA identifica oportunidades de upsell e cria sugestões automáticas",
+      "trigger": "Schedule Weekly",
+      "steps": [
+        "Buscar clientes com: NPS > 8, crescimento > 20%, contrato > 6 meses",
+        "Analisar serviços atuais vs disponíveis",
+        "Calcular success_probability",
+        "Gerar sales_pitch personalizado",
+        "Inserir em upsell_suggestions",
+        "Notificar comercial"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 10 * * 1"},
+        {"type": "Supabase", "operation": "SELECT", "query": "clients com potencial upsell"},
+        {"type": "OpenAI", "model": "gpt-4", "prompt": "Gerar pitch de upsell"},
+        {"type": "Supabase", "operation": "INSERT", "table": "upsell_suggestions"},
+        {"type": "Email", "to": "comercial"}
+      ]
+    },
+    {
+      "name": "4. Monitoramento de Concorrentes",
+      "description": "Scraping e análise de concorrentes",
+      "trigger": "Schedule Daily",
+      "steps": [
+        "Para cada concorrente ativo:",
+        "Scrape Instagram/Facebook (followers, posts)",
+        "Inserir em competitor_social_profiles",
+        "Detectar mudanças significativas (> 20%)",
+        "Se detectado: criar alerta em competitor_alerts",
+        "Análise de sentimento (Reclame Aqui, Google)",
+        "Inserir em competitor_sentiment_analysis"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 8 * * *"},
+        {"type": "Supabase", "operation": "SELECT", "table": "competitors"},
+        {"type": "HTTP Request", "url": "Instagram API"},
+        {"type": "Function", "name": "Detect Changes"},
+        {"type": "IF", "condition": "change > 20%"},
+        {"type": "Supabase", "operation": "INSERT", "table": "competitor_alerts"}
+      ]
+    },
+    {
+      "name": "5. Analytics Real-Time",
+      "description": "Processa eventos em tempo real e gera métricas",
+      "trigger": "Supabase Trigger",
+      "steps": [
+        "Evento criado em realtime_events",
+        "Agregar por minuto em realtime_traffic",
+        "Atualizar active_sessions",
+        "Detectar anomalias (spike/drop)",
+        "Se anomalia: inserir em anomaly_detections",
+        "Se crítico: criar realtime_alert"
+      ],
+      "n8n_nodes": [
+        {"type": "Supabase Trigger", "table": "realtime_events"},
+        {"type": "Function", "name": "Aggregate Metrics"},
+        {"type": "Supabase", "operation": "UPSERT", "table": "realtime_traffic"},
+        {"type": "Function", "name": "Detect Anomalies"},
+        {"type": "IF", "condition": "is_anomaly"},
+        {"type": "Supabase", "operation": "INSERT", "table": "anomaly_detections"}
+      ]
+    },
+    {
+      "name": "6. Pricing Intelligence Update",
+      "description": "Atualiza dados de preços do mercado",
+      "trigger": "Schedule Weekly",
+      "steps": [
+        "Buscar serviços ativos",
+        "Scrape preços de marketplaces",
+        "Scrape sites de concorrentes",
+        "Inserir em market_pricing_data",
+        "Calcular market_average_price",
+        "Atualizar pricing_intelligence",
+        "Gerar pricing_recommendations",
+        "Notificar super admin se mudanças > 10%"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 6 * * 0"},
+        {"type": "Supabase", "operation": "SELECT", "table": "service_catalog"},
+        {"type": "HTTP Request", "url": "99Freelas API"},
+        {"type": "Supabase", "operation": "INSERT", "table": "market_pricing_data"},
+        {"type": "Function", "name": "Calculate Recommendations"},
+        {"type": "Email", "to": "super_admin"}
+      ]
+    },
+    {
+      "name": "7. Proposta Expirando - Urgência",
+      "description": "Envia lembretes quando proposta está prestes a expirar",
+      "trigger": "Schedule Hourly",
+      "steps": [
+        "Buscar propostas com status 'sent'",
+        "Filtrar: expires_at em 24h, 6h, 1h",
+        "Para cada: criar urgency_notification",
+        "Enviar WhatsApp com countdown",
+        "Enviar Email de lembrete",
+        "Atualizar time_limited_proposals"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 * * * *"},
+        {"type": "Supabase", "operation": "SELECT", "query": "propostas expirando"},
+        {"type": "Function", "name": "Check Time Remaining"},
+        {"type": "HTTP Request", "url": "WhatsApp API"},
+        {"type": "Email", "operation": "Send"},
+        {"type": "Supabase", "operation": "INSERT", "table": "urgency_notifications"}
+      ]
+    },
+    {
+      "name": "8. Reunião Gravada - Processar Insights",
+      "description": "Quando reunião é gravada, transcreve e extrai insights",
+      "trigger": "Supabase Trigger",
+      "steps": [
+        "Reunião marcada como 'completed'",
+        "Download do áudio/vídeo",
+        "Enviar para Whisper API (transcrição)",
+        "Salvar transcript em recorded_meetings",
+        "Enviar para GPT-4 (análise)",
+        "Extrair: objeções, próximos passos, budget",
+        "Inserir em meeting_ai_insights",
+        "Criar action_items automaticamente",
+        "Notificar vendedor com resumo"
+      ],
+      "n8n_nodes": [
+        {"type": "Supabase Trigger", "table": "recorded_meetings", "condition": "status=completed"},
+        {"type": "HTTP Request", "url": "Download Recording"},
+        {"type": "OpenAI Whisper", "operation": "Transcribe"},
+        {"type": "OpenAI GPT-4", "prompt": "Analisar reunião e extrair insights"},
+        {"type": "Supabase", "operation": "INSERT", "table": "meeting_ai_insights"},
+        {"type": "Email", "to": "vendedor"}
+      ]
+    },
+    {
+      "name": "9. Aniversário Colaborador - Celebração",
+      "description": "Celebração automática de aniversário",
+      "trigger": "Schedule Daily 8am",
+      "steps": [
+        "Buscar colaboradores com aniversário hoje",
+        "Enviar mensagem personalizada (WhatsApp)",
+        "Notificar time no Slack",
+        "Criar pedido automático (iFood/Rappi)",
+        "Agendar transferência PIX (se configurado)",
+        "Registrar em employee_celebration_events"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 8 * * *"},
+        {"type": "Supabase", "operation": "SELECT", "query": "aniversariantes hoje"},
+        {"type": "HTTP Request", "url": "WhatsApp API"},
+        {"type": "Slack", "operation": "Send to Channel"},
+        {"type": "HTTP Request", "url": "iFood API"},
+        {"type": "HTTP Request", "url": "PIX API"}
+      ]
+    },
+    {
+      "name": "10. Relatório Diário Super Admin",
+      "description": "Gera relatório diário consolidado",
+      "trigger": "Schedule Daily 7am",
+      "steps": [
+        "Agregar métricas do dia anterior",
+        "Top insights de super_admin_insights",
+        "Alertas críticos pendentes",
+        "Oportunidades de upsell",
+        "Clientes em risco de churn",
+        "Performance de vendas",
+        "Gerar PDF com relatório",
+        "Enviar Email para super admin"
+      ],
+      "n8n_nodes": [
+        {"type": "Schedule Trigger", "cron": "0 7 * * *"},
+        {"type": "Supabase", "operation": "Multiple Queries"},
+        {"type": "Function", "name": "Generate Report"},
+        {"type": "PDF Generator"},
+        {"type": "Email", "to": "super_admin", "attachment": "relatorio.pdf"}
+      ]
+    }
+  ],
+  "instructions": {
+    "install": "Importar este arquivo no N8N via Settings > Import Workflow",
+    "config": [
+      "1. Configurar credenciais do Supabase (URL + Service Key)",
+      "2. Configurar WhatsApp Business API",
+      "3. Configurar OpenAI API Key",
+      "4. Configurar Email (SMTP ou SendGrid)",
+      "5. Configurar Slack Webhook (opcional)",
+      "6. Ativar cada workflow individualmente"
+    ],
+    "testing": [
+      "Criar um lead de teste → Workflow 1 deve ser trigado",
+      "Verificar logs do N8N para debug",
+      "Confirmar inserção de dados no Supabase"
+    ]
+  }
+}
+

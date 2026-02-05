@@ -1,0 +1,117 @@
+# ==================================
+# DOCKER COMPOSE - Valle 360 System
+# ==================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # Next.js Application (Valle 360)
+  # ==========================================
+  valle360-app:
+    container_name: valle360-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - valle360-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================
+  # Supabase Studio (Opcional - Development)
+  # ==========================================
+  # Descomente se quiser rodar Supabase localmente
+  # supabase-db:
+  #   container_name: supabase-db
+  #   image: supabase/postgres:15.1.0.117
+  #   ports:
+  #     - "54322:5432"
+  #   environment:
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your-super-secret-password}
+  #     POSTGRES_DB: postgres
+  #   volumes:
+  #     - supabase-db-data:/var/lib/postgresql/data
+  #   networks:
+  #     - valle360-network
+  #   restart: unless-stopped
+
+  # ==========================================
+  # Redis (Cache & Sessions)
+  # ==========================================
+  redis:
+    container_name: valle360-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - valle360-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # Nginx (Reverse Proxy - Opcional)
+  # ==========================================
+  # nginx:
+  #   container_name: valle360-nginx
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - valle360-app
+  #   networks:
+  #     - valle360-network
+  #   restart: unless-stopped
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  valle360-network:
+    driver: bridge
+    name: valle360-network
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  redis-data:
+    name: valle360-redis-data
+  # supabase-db-data:
+  #   name: valle360-supabase-data
+
+
+
+
+
+
+
+

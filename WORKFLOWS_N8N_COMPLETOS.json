@@ -1,0 +1,673 @@
+{
+  "workflows": [
+    {
+      "name": "1. Daily Reports Generation",
+      "description": "Gera relatórios diários automáticos para colaboradores, clientes e executivos",
+      "schedule": "0 7 * * *",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Schedule Trigger - 7h",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "parameters": {
+              "rule": {
+                "interval": [{
+                  "field": "cronExpression",
+                  "expression": "0 7 * * *"
+                }]
+              }
+            },
+            "position": [250, 300]
+          },
+          {
+            "name": "Postgres - Generate All Reports",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT * FROM generate_all_daily_reports(CURRENT_DATE);"
+            },
+            "position": [450, 300]
+          },
+          {
+            "name": "Get Active Subscriptions",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "report_subscriptions",
+              "returnAll": true,
+              "filters": {
+                "conditions": [{
+                  "keyName": "is_active",
+                  "keyValue": "true"
+                }]
+              }
+            },
+            "position": [650, 300]
+          },
+          {
+            "name": "Loop Subscriptions",
+            "type": "n8n-nodes-base.splitInBatches",
+            "parameters": {
+              "batchSize": 10
+            },
+            "position": [850, 300]
+          },
+          {
+            "name": "Check Report Type",
+            "type": "n8n-nodes-base.switch",
+            "parameters": {
+              "mode": "expression",
+              "rules": {
+                "rules": [
+                  {
+                    "operation": "equals",
+                    "value1": "={{$json.report_type}}",
+                    "value2": "daily_employee"
+                  },
+                  {
+                    "operation": "equals",
+                    "value1": "={{$json.report_type}}",
+                    "value2": "daily_client"
+                  },
+                  {
+                    "operation": "equals",
+                    "value1": "={{$json.report_type}}",
+                    "value2": "daily_executive"
+                  }
+                ]
+              }
+            },
+            "position": [1050, 300]
+          },
+          {
+            "name": "Send Employee Report Email",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "fromEmail": "reports@valle360.com",
+              "toEmail": "={{$json.user_email}}",
+              "subject": "Seu Relatório Diário - {{$now.format('DD/MM/YYYY')}}",
+              "html": "<html>...</html>"
+            },
+            "position": [1250, 200]
+          },
+          {
+            "name": "Send Client Report Email",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "fromEmail": "reports@valle360.com",
+              "toEmail": "={{$json.user_email}}",
+              "subject": "Relatório de Atividades - {{$now.format('DD/MM/YYYY')}}",
+              "html": "<html>...</html>"
+            },
+            "position": [1250, 300]
+          },
+          {
+            "name": "Send Executive Report Email",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "fromEmail": "reports@valle360.com",
+              "toEmail": "={{$json.user_email}}",
+              "subject": "📊 Relatório Executivo - {{$now.format('DD/MM/YYYY')}}",
+              "html": "<html>...</html>"
+            },
+            "position": [1250, 400]
+          }
+        ]
+      }
+    },
+    {
+      "name": "2. Birthday Detection & Celebration",
+      "description": "Detecta aniversários e executa celebração completa automática",
+      "schedule": "0 6 * * *",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Schedule - 6h",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "parameters": {
+              "rule": {
+                "interval": [{
+                  "field": "cronExpression",
+                  "expression": "0 6 * * *"
+                }]
+              }
+            }
+          },
+          {
+            "name": "Detect Birthdays Today",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT * FROM detect_birthdays_today();"
+            }
+          },
+          {
+            "name": "Loop Birthdays",
+            "type": "n8n-nodes-base.splitInBatches"
+          },
+          {
+            "name": "Create Celebration",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT create_birthday_celebration('{{$json.employee_id}}');"
+            }
+          },
+          {
+            "name": "Send Birthday Message",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "fromEmail": "rh@valle360.com",
+              "toEmail": "={{$json.employee_email}}",
+              "subject": "🎂 Feliz Aniversário, {{$json.employee_name}}!",
+              "html": "<html><body style='text-align:center;padding:40px;'><h1 style='font-size:48px;'>🎉</h1><h2>Feliz Aniversário, {{$json.employee_name}}!</h2><p style='font-size:20px;'>Você completa {{$json.age}} anos hoje!</p><p>A Valle te deseja um dia incrível! ❤️</p><img src='https://media.giphy.com/media/g5R9dok94mrIvplmZd/giphy.gif' width='300'></body></html>"
+            }
+          },
+          {
+            "name": "Notify Team - Slack",
+            "type": "n8n-nodes-base.slack",
+            "parameters": {
+              "channelId": "general",
+              "text": "🎂 Hoje é aniversário do(a) {{$json.employee_name}}! Vamos todos parabenizar! 🎉"
+            }
+          },
+          {
+            "name": "Order Food - iFood API",
+            "type": "n8n-nodes-base.httpRequest",
+            "parameters": {
+              "method": "POST",
+              "url": "https://api.ifood.com.br/v1/orders",
+              "authentication": "headerAuth",
+              "sendBody": true,
+              "bodyParameters": {
+                "parameters": [
+                  {
+                    "name": "merchant_id",
+                    "value": "={{$env.IFOOD_MERCHANT_ID}}"
+                  },
+                  {
+                    "name": "delivery_address",
+                    "value": "={{$json.delivery_address}}"
+                  },
+                  {
+                    "name": "items",
+                    "value": "={{$json.favorite_food}}"
+                  },
+                  {
+                    "name": "budget_limit",
+                    "value": 100
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Send Money - PIX",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT send_money_to_employee('{{$json.employee_id}}', 100.00, 'pix', '{{$json.admin_id}}', 'Presente de aniversário', 'birthday_gift');"
+            }
+          },
+          {
+            "name": "Create Feed Post",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "team_celebration_feed",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "employee_id",
+                    "fieldValue": "={{$json.employee_id}}"
+                  },
+                  {
+                    "fieldId": "post_type",
+                    "fieldValue": "birthday"
+                  },
+                  {
+                    "fieldId": "title",
+                    "fieldValue": "🎂 Feliz Aniversário, {{$json.employee_name}}!"
+                  },
+                  {
+                    "fieldId": "message",
+                    "fieldValue": "Hoje é aniversário de {{$json.age}} anos do nosso querido(a) {{$json.employee_name}}! 🎉🎊"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "3. Employee Churn Detection",
+      "description": "Detecta colaboradores em risco de saída e cria intervenções automáticas",
+      "schedule": "0 3 * * *",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Schedule - 3h",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "parameters": {
+              "rule": {
+                "interval": [{
+                  "field": "cronExpression",
+                  "expression": "0 3 * * *"
+                }]
+              }
+            }
+          },
+          {
+            "name": "Get Active Employees",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "employees",
+              "returnAll": true,
+              "filters": {
+                "conditions": [{
+                  "keyName": "is_active",
+                  "keyValue": "true"
+                }]
+              }
+            }
+          },
+          {
+            "name": "Loop Employees",
+            "type": "n8n-nodes-base.splitInBatches",
+            "parameters": {
+              "batchSize": 10
+            }
+          },
+          {
+            "name": "Analyze Behavior",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT analyze_employee_behavior('{{$json.id}}', CURRENT_DATE);"
+            }
+          },
+          {
+            "name": "Predict Churn",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT * FROM employee_churn_predictions WHERE employee_id = '{{$json.id}}';"
+            }
+          },
+          {
+            "name": "Check Risk Level",
+            "type": "n8n-nodes-base.if",
+            "parameters": {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{$json.risk_level}}",
+                    "operation": "equals",
+                    "value2": "critical"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Alert HR - Critical Risk",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "fromEmail": "alerts@valle360.com",
+              "toEmail": "rh@valle360.com",
+              "subject": "🚨 URGENTE: Colaborador em Alto Risco de Saída",
+              "html": "<html><body><h2>Ação Urgente Necessária</h2><p><strong>{{$json.employee_name}}</strong> tem {{$json.churn_probability}}% de probabilidade de sair.</p><p>Dias até saída prevista: {{$json.days_until_churn}}</p><h3>Ações Recomendadas:</h3><ul>{{#each recommended_actions}}<li>{{this.description}}</li>{{/each}}</ul></body></html>"
+            }
+          },
+          {
+            "name": "Create Intervention Recommendation",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "employee_intervention_recommendations",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "employee_id",
+                    "fieldValue": "={{$json.employee_id}}"
+                  },
+                  {
+                    "fieldId": "recommendation_type",
+                    "fieldValue": "one_on_one"
+                  },
+                  {
+                    "fieldId": "priority",
+                    "fieldValue": 10
+                  },
+                  {
+                    "fieldId": "urgency",
+                    "fieldValue": "immediate"
+                  },
+                  {
+                    "fieldId": "title",
+                    "fieldValue": "URGENTE: 1-on-1 com {{$json.employee_name}}"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Schedule Auto 1-on-1",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "employee_one_on_one_meetings",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "employee_id",
+                    "fieldValue": "={{$json.employee_id}}"
+                  },
+                  {
+                    "fieldId": "meeting_type",
+                    "fieldValue": "urgent"
+                  },
+                  {
+                    "fieldId": "scheduled_date",
+                    "fieldValue": "={{$now.plus({days: 1}).toISO()}}"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "4. Client Churn Detection",
+      "description": "Detecta clientes em risco e cria ações automáticas",
+      "schedule": "0 3 * * *",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Schedule - 3h",
+            "type": "n8n-nodes-base.scheduleTrigger"
+          },
+          {
+            "name": "Get Active Clients",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "clients",
+              "filters": {
+                "conditions": [{
+                  "keyName": "is_active",
+                  "keyValue": "true"
+                }]
+              }
+            }
+          },
+          {
+            "name": "Loop Clients",
+            "type": "n8n-nodes-base.splitInBatches"
+          },
+          {
+            "name": "Calculate Health Score",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT calculate_client_health_score('{{$json.id}}');"
+            }
+          },
+          {
+            "name": "Predict Churn",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT predict_client_churn('{{$json.id}}');"
+            }
+          },
+          {
+            "name": "Check if High Risk",
+            "type": "n8n-nodes-base.if",
+            "parameters": {
+              "conditions": {
+                "number": [{
+                  "value1": "={{$json.churn_probability}}",
+                  "operation": "largerEqual",
+                  "value2": 70
+                }]
+              }
+            }
+          },
+          {
+            "name": "Alert Account Manager",
+            "type": "n8n-nodes-base.emailSend",
+            "parameters": {
+              "toEmail": "={{$json.account_manager_email}}",
+              "subject": "🚨 Cliente em Alto Risco: {{$json.client_name}}",
+              "html": "<h2>Ação Urgente</h2><p>Cliente {{$json.client_name}} tem {{$json.churn_probability}}% de risco de churn.</p>"
+            }
+          },
+          {
+            "name": "Create Action Item",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "priority_action_items",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "action_type",
+                    "fieldValue": "prevent_churn"
+                  },
+                  {
+                    "fieldId": "priority_score",
+                    "fieldValue": 95
+                  },
+                  {
+                    "fieldId": "client_id",
+                    "fieldValue": "={{$json.id}}"
+                  },
+                  {
+                    "fieldId": "urgency",
+                    "fieldValue": "immediate"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "5. Task Reminders",
+      "description": "Lembretes inteligentes de tarefas atrasadas ou vencendo",
+      "schedule": "0 */1 * * *",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Schedule - Every Hour",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "parameters": {
+              "rule": {
+                "interval": [{
+                  "field": "hours",
+                  "hoursInterval": 1
+                }]
+              }
+            }
+          },
+          {
+            "name": "Get Overdue Tasks",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "kanban_cards",
+              "filters": {
+                "conditions": [
+                  {
+                    "keyName": "completed_at",
+                    "condition": "is",
+                    "keyValue": "null"
+                  },
+                  {
+                    "keyName": "due_date",
+                    "condition": "lt",
+                    "keyValue": "now()"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Loop Tasks",
+            "type": "n8n-nodes-base.splitInBatches"
+          },
+          {
+            "name": "Check if Already Reminded",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "employee_task_reminders",
+              "filters": {
+                "conditions": [
+                  {
+                    "keyName": "task_id",
+                    "keyValue": "={{$json.id}}"
+                  },
+                  {
+                    "keyName": "status",
+                    "keyValue": "sent"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Not Reminded Yet?",
+            "type": "n8n-nodes-base.if",
+            "parameters": {
+              "conditions": {
+                "boolean": [{
+                  "value1": "={{$json.length === 0}}",
+                  "value2": true
+                }]
+              }
+            }
+          },
+          {
+            "name": "Create Reminder",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "employee_task_reminders",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "employee_id",
+                    "fieldValue": "={{$json.assignees[0]}}"
+                  },
+                  {
+                    "fieldId": "task_id",
+                    "fieldValue": "={{$json.id}}"
+                  },
+                  {
+                    "fieldId": "reminder_type",
+                    "fieldValue": "overdue"
+                  },
+                  {
+                    "fieldId": "message",
+                    "fieldValue": "Oi! 📋 A tarefa '{{$json.title}}' está atrasada. Precisa de ajuda?"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Send Notification",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "notifications",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "user_id",
+                    "fieldValue": "={{$json.assignees[0]}}"
+                  },
+                  {
+                    "fieldId": "type",
+                    "fieldValue": "task_reminder"
+                  },
+                  {
+                    "fieldId": "title",
+                    "fieldValue": "Tarefa Atrasada"
+                  },
+                  {
+                    "fieldId": "message",
+                    "fieldValue": "={{$json.title}} está atrasada"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "6. Motivation Messages Auto",
+      "description": "Envia mensagens motivacionais automáticas baseado em eventos",
+      "trigger": "webhook",
+      "workflow": {
+        "nodes": [
+          {
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "parameters": {
+              "path": "motivation-trigger",
+              "method": "POST"
+            }
+          },
+          {
+            "name": "Parse Event Type",
+            "type": "n8n-nodes-base.function",
+            "parameters": {
+              "functionCode": "const eventType = items[0].json.event_type;\nconst employeeId = items[0].json.employee_id;\n\nlet messageType = 'motivation';\nlet message = '';\n\nswitch(eventType) {\n  case 'goal_achieved':\n    messageType = 'congratulation';\n    message = 'Parabéns! 🎉 Você bateu sua meta!';\n    break;\n  case 'task_completed':\n    messageType = 'recognition';\n    message = 'Ótimo trabalho! Continue assim! 💪';\n    break;\n  case 'low_mood':\n    messageType = 'support';\n    message = 'Oi! Notamos que você está com o humor baixo. Podemos ajudar? 😊';\n    break;\n  case 'milestone':\n    messageType = 'achievement';\n    message = 'Conquista desbloqueada! 🏆';\n    break;\n  default:\n    message = 'Você é incrível! Continue assim! ⭐';\n}\n\nreturn [{ json: { employeeId, messageType, message, ...items[0].json } }];"
+            }
+          },
+          {
+            "name": "Send Message",
+            "type": "n8n-nodes-base.postgres",
+            "parameters": {
+              "operation": "executeQuery",
+              "query": "SELECT send_automatic_motivation_message('{{$json.employeeId}}', '{{$json.messageType}}', '{{$json.event_type}}', '{{$json.message}}');"
+            }
+          },
+          {
+            "name": "Create Notification",
+            "type": "n8n-nodes-base.supabase",
+            "parameters": {
+              "operation": "create",
+              "tableId": "notifications",
+              "fieldsUi": {
+                "fieldValues": [
+                  {
+                    "fieldId": "user_id",
+                    "fieldValue": "={{$json.employeeId}}"
+                  },
+                  {
+                    "fieldId": "type",
+                    "fieldValue": "motivation"
+                  },
+                  {
+                    "fieldId": "message",
+                    "fieldValue": "={{$json.message}}"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+

@@ -201,7 +201,7 @@ export default function MensagensPage() {
       {currentUserId && isSuperAdmin && (
         <>
           <NewDirectConversationModal
-            isOpen={isNewConversationModalOpen && activeTab !== 'groups'}
+            isOpen={isNewConversationModalOpen}
             onClose={() => setIsNewConversationModalOpen(false)}
             onConversationCreated={handleConversationCreated}
             currentUserId={currentUserId}

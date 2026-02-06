@@ -6,12 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Send, X, Users, User } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
-
-interface Group {
-  id: string;
-  name: string;
-  description?: string;
-}
+import type { Group } from '@/types/messaging';
 
 interface Conversation {
   id: string;

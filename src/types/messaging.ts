@@ -16,7 +16,7 @@ export interface DirectConversation {
 export interface Group {
   id: string;
   name: string;
-  type?: string;
+  type: string;  // obrigatório (não opcional)
   description?: string;
   avatar?: string;
   member_count?: number;

@@ -7,16 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, Users, User, MessageCircle } from 'lucide-react';
-
-interface Group {
-  id: string;
-  name: string;
-  type: string;
-  description?: string;
-  last_message_at?: string;
-  last_message_preview?: string;
-  unread_count?: number;
-}
+import type { Group } from '@/types/messaging';
 
 interface GroupListProps {
   onSelectGroup: (group: Group) => void;

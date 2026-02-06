@@ -24,6 +24,7 @@ import { MentionsText } from '@/lib/mentions/render';
 import { applyMentionReplacement, extractMentionUserIds, getActiveMentionQuery } from '@/lib/mentions/parse';
 import { filterCandidates } from '@/lib/mentions/suggestions';
 import { triggerSilentAnalysis } from '@/lib/messaging/silentAnalysis';
+import type { Group } from '@/types/messaging';
 
 interface Attachment {
   id: string;
@@ -46,13 +47,6 @@ interface Message {
   sender_name?: string;
   sender_avatar?: string;
   attachments?: Attachment[];
-}
-
-interface Group {
-  id: string;
-  name: string;
-  description?: string;
-  type: string;
 }
 
 interface GroupChatWindowProps {

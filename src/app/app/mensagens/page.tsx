@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { GroupList } from '@/components/messaging/GroupList';
 import { GroupChatWindow } from '@/components/messaging/GroupChatWindow';
-import { DirectConversationList } from '@/components/messaging/DirectConversationList';
+import { AllUsersList } from '@/components/messaging/AllUsersList';
 import { DirectChatWindow } from '@/components/messaging/DirectChatWindow';
-import { NewDirectConversationModal } from '@/components/messaging/NewDirectConversationModal';
 import { NewConversationModal } from '@/components/messaging/NewConversationModal';
 import { Card } from '@/components/ui/card';
 import { MessageCircle, Users, User, MessageSquare } from 'lucide-react';
@@ -21,7 +20,7 @@ interface Group {
 }
 
 interface DirectConversation {
-  id: string;
+  id?: string;
   is_client_conversation: boolean;
   other_user_id: string;
   other_user_name: string;
@@ -32,12 +31,11 @@ interface DirectConversation {
 type ActiveTab = 'groups' | 'team' | 'clients';
 
 export default function MensagensPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('groups');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('team');
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<DirectConversation | null>(null);
+  const [selectedUser, setSelectedUser] = useState<DirectConversation | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isNewConversationModalOpen, setIsNewConversationModalOpen] = useState(false);
   const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
 
   useEffect(() => {
@@ -63,20 +61,43 @@ export default function MensagensPage() {
   const handleTabChange = (tab: ActiveTab) => {
     setActiveTab(tab);
     setSelectedGroup(null);
-    setSelectedConversation(null);
+    setSelectedUser(null);
   };
 
-  const handleConversationCreated = (conversationId: string) => {
-    console.log('✅ Conversa criada:', conversationId);
-    setIsNewConversationModalOpen(false);
-  };
+  const handleUserSelect = async (userId: string, conversationId?: string) => {
+    console.log('👤 Usuário selecionado:', userId, 'Conversa:', conversationId);
+    
+    // Buscar informações do usuário
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('user_id, full_name, email, user_type, avatar_url')
+      .eq('user_id', userId)
+      .single();
 
-  const handleOpenNewConversation = () => {
-    console.log('🚀 Abrindo modal Nova Conversa');
-    console.log('🚀 CurrentUserId:', currentUserId);
-    console.log('🚀 IsSuperAdmin:', isSuperAdmin);
-    console.log('🚀 ActiveTab:', activeTab);
-    setIsNewConversationModalOpen(true);
+    if (!profile) return;
+
+    // Se já tem conversa, usar; senão criar uma nova
+    let finalConversationId = conversationId;
+    
+    if (!finalConversationId) {
+      // Criar nova conversa
+      const { data: convId } = await supabase.rpc('get_or_create_direct_conversation', {
+        p_user_id_1: currentUserId,
+        p_user_id_2: userId,
+        p_is_client_conversation: profile.user_type === 'client',
+      });
+      
+      finalConversationId = convId;
+    }
+
+    setSelectedUser({
+      id: finalConversationId,
+      is_client_conversation: profile.user_type === 'client',
+      other_user_id: userId,
+      other_user_name: profile.full_name || 'Usuário',
+      other_user_email: profile.email || '',
+      other_user_avatar: profile.avatar_url,
+    });
   };
 
   return (
@@ -134,7 +155,7 @@ export default function MensagensPage() {
                 <GroupList
                   onSelectGroup={(group) => {
                     setSelectedGroup(group);
-                    setSelectedConversation(null);
+                    setSelectedUser(null);
                   }}
                   selectedGroupId={selectedGroup?.id}
                   currentUserId={currentUserId}
@@ -143,51 +164,41 @@ export default function MensagensPage() {
                 />
               )}
               {currentUserId && activeTab === 'team' && (
-                <DirectConversationList
-                  onSelectConversation={(conv) => {
-                    setSelectedConversation(conv);
-                    setSelectedGroup(null);
-                  }}
-                  selectedConversationId={selectedConversation?.id}
-                  onNewConversation={handleOpenNewConversation}
+                <AllUsersList
+                  onSelectUser={handleUserSelect}
+                  selectedUserId={selectedUser?.other_user_id}
                   currentUserId={currentUserId}
                   filterType="team"
-                  adminView={false}
                 />
               )}
               {currentUserId && activeTab === 'clients' && (
-                <DirectConversationList
-                  onSelectConversation={(conv) => {
-                    setSelectedConversation(conv);
-                    setSelectedGroup(null);
-                  }}
-                  selectedConversationId={selectedConversation?.id}
-                  onNewConversation={handleOpenNewConversation}
+                <AllUsersList
+                  onSelectUser={handleUserSelect}
+                  selectedUserId={selectedUser?.other_user_id}
                   currentUserId={currentUserId}
                   filterType="clients"
-                  adminView={false}
                 />
               )}
             </div>
 
-            <div className="lg:col-span-2 overflow-hidden">
+            <div className="lg:col-span-2 overflow-hidden bg-gray-50 dark:bg-gray-900">
               {activeTab === 'groups' && selectedGroup && currentUserId ? (
                 <GroupChatWindow group={selectedGroup} currentUserId={currentUserId} readOnly={false} />
-              ) : activeTab !== 'groups' && selectedConversation && currentUserId ? (
-                <DirectChatWindow conversation={selectedConversation} currentUserId={currentUserId} readOnly={false} />
+              ) : activeTab !== 'groups' && selectedUser && currentUserId ? (
+                <DirectChatWindow conversation={selectedUser} currentUserId={currentUserId} readOnly={false} />
               ) : (
-                <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="h-full flex items-center justify-center">
                   <div className="text-center">
-                    <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    <MessageCircle className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                       {activeTab === 'groups' && 'Selecione um grupo'}
-                      {activeTab === 'team' && 'Selecione uma conversa'}
+                      {activeTab === 'team' && 'Selecione alguém da equipe'}
                       {activeTab === 'clients' && 'Selecione um cliente'}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {activeTab === 'groups' && 'Escolha um grupo da lista ao lado'}
-                      {activeTab === 'team' && 'Escolha uma conversa ou inicie uma nova'}
-                      {activeTab === 'clients' && 'Escolha um cliente ou inicie uma conversa'}
+                      {activeTab === 'groups' && 'Escolha um grupo para conversar'}
+                      {activeTab === 'team' && 'Clique em alguém para iniciar uma conversa'}
+                      {activeTab === 'clients' && 'Clique em um cliente para conversar'}
                     </p>
                   </div>
                 </div>
@@ -197,35 +208,15 @@ export default function MensagensPage() {
         </Card>
       </div>
 
-      {currentUserId && !isSuperAdmin && (
-        <NewDirectConversationModal
-          isOpen={isNewConversationModalOpen}
-          onClose={() => setIsNewConversationModalOpen(false)}
-          onConversationCreated={handleConversationCreated}
-          currentUserId={currentUserId}
-          filterType={activeTab === 'clients' ? 'clients' : 'team'}
-        />
-      )}
-
       {currentUserId && isSuperAdmin && (
-        <>
-          <NewDirectConversationModal
-            isOpen={isNewConversationModalOpen}
-            onClose={() => setIsNewConversationModalOpen(false)}
-            onConversationCreated={handleConversationCreated}
-            currentUserId={currentUserId}
-            filterType={activeTab === 'clients' ? 'clients' : 'team'}
-          />
-          <NewConversationModal
-            isOpen={isNewGroupModalOpen}
-            onClose={() => setIsNewGroupModalOpen(false)}
-            onConversationCreated={(groupId) => {
-              setIsNewGroupModalOpen(false);
-              // Recarregar lista de grupos
-            }}
-            currentUserId={currentUserId}
-          />
-        </>
+        <NewConversationModal
+          isOpen={isNewGroupModalOpen}
+          onClose={() => setIsNewGroupModalOpen(false)}
+          onConversationCreated={(groupId) => {
+            setIsNewGroupModalOpen(false);
+          }}
+          currentUserId={currentUserId}
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -22,6 +22,7 @@ import { MentionsText } from '@/lib/mentions/render';
 import { applyMentionReplacement, extractMentionUserIds, getActiveMentionQuery } from '@/lib/mentions/parse';
 import { filterCandidates } from '@/lib/mentions/suggestions';
 import { triggerSilentAnalysis } from '@/lib/messaging/silentAnalysis';
+import type { DirectConversation } from '@/types/messaging';
 
 interface Attachment {
   id: string;
@@ -45,15 +46,6 @@ interface DirectMessage {
   sender_name?: string;
   sender_avatar?: string;
   attachments?: Attachment[];
-}
-
-interface DirectConversation {
-  id: string;
-  is_client_conversation: boolean;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_email: string;
-  other_user_avatar?: string;
 }
 
 interface DirectChatWindowProps {

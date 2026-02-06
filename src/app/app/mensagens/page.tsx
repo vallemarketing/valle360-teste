@@ -11,22 +11,7 @@ import { Card } from '@/components/ui/card';
 import { MessageCircle, Users, User, MessageSquare } from 'lucide-react';
 import { usePresence } from '@/hooks/usePresence';
 import { fetchProfileByAuthId } from '@/lib/messaging/userProfiles';
-
-interface Group {
-  id: string;
-  name: string;
-  type: string;
-  description?: string;
-}
-
-interface DirectConversation {
-  id?: string;
-  is_client_conversation: boolean;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_email: string;
-  other_user_avatar?: string;
-}
+import type { DirectConversation, Group } from '@/types/messaging';
 
 type ActiveTab = 'groups' | 'team' | 'clients';
 

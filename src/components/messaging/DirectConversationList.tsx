@@ -8,19 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, User, MessageCircle, Users } from 'lucide-react';
 import { PresenceIndicator } from './PresenceIndicator';
 import { fetchProfilesMapByAuthIds } from '@/lib/messaging/userProfiles';
-
-interface DirectConversation {
-  id: string;
-  is_client_conversation: boolean;
-  last_message_at?: string;
-  last_message_preview?: string;
-  unread_count?: number;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_email: string;
-  other_user_avatar?: string;
-  other_user_type: string;
-}
+import type { DirectConversation } from '@/types/messaging';
 
 interface DirectConversationListProps {
   onSelectConversation: (conversation: DirectConversation) => void;

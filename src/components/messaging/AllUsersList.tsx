@@ -114,8 +114,8 @@ export function AllUsersList({
             avatar_url: profile.avatar_url,
             has_conversation: !!userConversation,
             conversation_id: userConversation?.conversation_id,
-            last_message_at: userConversation?.direct_conversations?.last_message_at,
-            last_message_preview: userConversation?.direct_conversations?.last_message_preview,
+            last_message_at: (userConversation?.direct_conversations as any)?.last_message_at,
+            last_message_preview: (userConversation?.direct_conversations as any)?.last_message_preview,
             unread_count: 0,
           };
         })

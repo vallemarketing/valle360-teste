@@ -49,7 +49,7 @@ export function ForwardMessageModal({
     try {
       const { data: groupsData } = await supabase
         .from('group_participants')
-        .select('group_id, groups(id, name, description)')
+        .select('group_id, groups(id, name, type, description)')
         .eq('user_id', currentUserId)
         .eq('is_active', true);
 
@@ -72,6 +72,7 @@ export function ForwardMessageModal({
         groupsData?.map((g: any) => ({
           id: g.groups.id,
           name: g.groups.name,
+          type: g.groups.type,
           description: g.groups.description,
         })) || [];
 

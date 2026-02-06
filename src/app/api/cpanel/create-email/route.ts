@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { generateCPanelPassword, validatePasswordStrength } from '@/lib/passwordGenerator'
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validar força da senha
+    const passwordValidation = validatePasswordStrength(password);
+    let finalPassword = password;
+    let passwordWasGenerated = false;
+
+    if (!passwordValidation.isValid) {
+      console.log(`⚠️ Senha fornecida é fraca (rating: ${passwordValidation.rating}/100)`);
+      console.log(`⚠️ Erros: ${passwordValidation.errors.join(', ')}`);
+      console.log(`🔐 Gerando senha forte automaticamente...`);
+      
+      finalPassword = generateCPanelPassword();
+      passwordWasGenerated = true;
+      
+      const newValidation = validatePasswordStrength(finalPassword);
+      console.log(`✅ Nova senha gerada (rating: ${newValidation.rating}/100)`);
+    }
+
     // Extrair username e domain do email
     const [username, domain] = email.split('@')
     if (!username || !domain) {
@@ -46,6 +64,25 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Email inválido (formato esperado: usuario@dominio)' },
         { status: 400 }
       )
+    }
+
+    // Sanitizar username: remover pontos e caracteres especiais (cPanel não aceita)
+    const sanitizedUsername = username.replace(/[^a-zA-Z0-9]/g, '')
+    const sanitizedEmail = `${sanitizedUsername}@${domain}`
+
+    console.log(`📧 Email original: ${email}`)
+    console.log(`📧 Email sanitizado: ${sanitizedEmail}`)
+    console.log(`👤 Username: ${sanitizedUsername}`)
+    console.log(`🌐 Domain: ${domain}`)
+
+    // Validar domínio
+    if (domain !== 'valle360.com.br') {
+      console.warn(`⚠️ Domínio não suportado: ${domain}. Esperado: valle360.com.br`)
+      return NextResponse.json({
+        success: false,
+        message: `Domínio não suportado: ${domain}. Use apenas @valle360.com.br`,
+        email
+      }, { status: 400 })
     }
 
     // Credenciais do cPanel (configurar no .env.local)
@@ -65,33 +102,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar domínio
-    if (domain !== 'valle360.com.br') {
-      console.warn(`⚠️ Domínio não suportado: ${domain}. Esperado: valle360.com.br`)
-      return NextResponse.json({
-        success: false,
-        message: `Domínio não suportado: ${domain}. Use apenas @valle360.com.br`,
-        email
-      }, { status: 400 })
-    }
-
     // Criar Basic Auth
     const basicAuth = Buffer.from(`${cpanelUser}:${cpanelPassword}`).toString('base64')
 
-    // Construir URL da API do cPanel (UAPI)
+    // Construir URL e body da API do cPanel (UAPI)
+    // Documentação oficial: POST com form data, email = username (SEM @domain), domain separado
+    // Ref: https://api.docs.cpanel.net/openapi/cpanel/operation/add_pop
     const baseUrl = normalizeCpanelBaseUrl(cpanelDomain)
-    const apiUrl = `${baseUrl}/execute/Email/add_pop?email=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&domain=${encodeURIComponent(domain)}&quota=500`
+    const apiUrl = `${baseUrl}/execute/Email/add_pop`
+    
+    // Parâmetros como form data (POST body, NÃO query string)
+    const formParams = new URLSearchParams({
+      email: sanitizedUsername,
+      password: finalPassword,
+      domain: domain,
+      quota: '500',
+      skip_update_db: '1'
+    })
 
     // Fazer requisição para o cPanel
     console.log(`\n${'='.repeat(60)}`)
     console.log(`📧 CRIAÇÃO DE EMAIL NO CPANEL`)
     console.log(`${'='.repeat(60)}`)
-    console.log(`Email: ${email}`)
-    console.log(`Username: ${username}`)
-    console.log(`Domain: ${domain}`)
+    console.log(`Email a criar: ${sanitizedEmail}`)
+    console.log(`Username (param email): ${sanitizedUsername}`)
+    console.log(`Domain (param domain): ${domain}`)
     console.log(`cPanel URL: ${baseUrl}`)
-    console.log(`API Endpoint: /execute/Email/add_pop`)
+    console.log(`API Endpoint: POST /execute/Email/add_pop`)
     console.log(`cPanel User: ${cpanelUser}`)
+    console.log(`Form params: email=${sanitizedUsername}&domain=${domain}&quota=500&skip_update_db=1`)
     console.log(`${'='.repeat(60)}\n`)
     
     // Adicionar timeout de 30 segundos
@@ -100,11 +139,12 @@ export async function POST(request: NextRequest) {
     
     try {
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
+        body: formParams.toString(),
         signal: controller.signal
       })
       
@@ -113,65 +153,43 @@ export async function POST(request: NextRequest) {
       console.log(`📊 Status HTTP: ${response.status}`)
       console.log(`📋 Headers:`, Object.fromEntries(response.headers.entries()))
 
-      // Verificar se a resposta é JSON
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text()
+      // Ler resposta como texto primeiro (cPanel pode retornar JSON com content-type text/plain)
+      const responseText = await response.text()
+      console.log(`📦 Resposta bruta:`, responseText.substring(0, 500))
+      
+      // Tentar parsear como JSON independente do content-type
+      let data: any
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
         console.error(`\n${'='.repeat(60)}`)
-        console.error('❌ ERRO: cPanel retornou HTML ao invés de JSON')
+        console.error('❌ ERRO: cPanel retornou resposta não-JSON')
         console.error(`${'='.repeat(60)}`)
-        console.error('Status:', response.status)
-        console.error('Content-Type:', contentType)
-        console.error('Primeiros 500 caracteres da resposta:')
-        console.error(text.substring(0, 500))
+        console.error('Resposta:', responseText.substring(0, 500))
         console.error(`${'='.repeat(60)}\n`)
         
         // Verificar se é página de login
-        if (text.includes('login') || text.includes('Login') || text.includes('authentication')) {
+        if (responseText.includes('login') || responseText.includes('Login') || responseText.includes('authentication')) {
           return NextResponse.json({
             success: false,
             message: 'Falha na autenticação com o cPanel',
             hint: 'Verifique se CPANEL_USER e CPANEL_PASSWORD estão corretos',
-            details: 'O cPanel está retornando uma página de login. Credenciais inválidas ou expiradas.',
-            debugInfo: {
-              cpanelUrl: baseUrl,
-              cpanelUser: cpanelUser,
-              statusCode: response.status,
-              responsePreview: text.substring(0, 200)
-            }
+            debugInfo: { cpanelUrl: baseUrl, cpanelUser, statusCode: response.status }
           }, { status: 401 })
-        }
-        
-        // Verificar se é erro 404
-        if (response.status === 404 || text.includes('404') || text.includes('Not Found')) {
-          return NextResponse.json({
-            success: false,
-            message: 'Endpoint do cPanel não encontrado',
-            hint: 'Verifique se CPANEL_DOMAIN está correto (deve incluir porta :2083)',
-            details: 'A URL da API do cPanel não foi encontrada. Formato esperado: https://servidor.com:2083',
-            debugInfo: {
-              cpanelUrl: baseUrl,
-              fullUrl: apiUrl.replace(/password=[^&]+/, 'password=***'),
-              statusCode: response.status
-            }
-          }, { status: 404 })
         }
         
         return NextResponse.json({
           success: false,
-          message: 'cPanel retornou resposta inválida (HTML)',
+          message: 'cPanel retornou resposta inválida',
           hint: 'Verifique CPANEL_DOMAIN, CPANEL_USER e CPANEL_PASSWORD',
-          details: 'A resposta do servidor não é JSON. Isso indica URL incorreta ou problema de autenticação.',
           debugInfo: {
             cpanelUrl: baseUrl,
             statusCode: response.status,
-            contentType: contentType,
-            responsePreview: text.substring(0, 200)
+            contentType: response.headers.get('content-type'),
+            responsePreview: responseText.substring(0, 300)
           }
         }, { status: 500 })
       }
-
-      const data = await response.json()
       
       console.log(`📦 Resposta do cPanel:`, JSON.stringify(data, null, 2))
 
@@ -185,7 +203,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: 'Email criado com sucesso no cPanel',
-          email,
+          email: sanitizedEmail,
+          originalEmail: email,
+          passwordGenerated: passwordWasGenerated,
+          generatedPassword: passwordWasGenerated ? finalPassword : undefined,
           data: data.result?.data || data.data
         })
       } else {

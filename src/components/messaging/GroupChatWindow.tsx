@@ -264,13 +264,30 @@ export function GroupChatWindow({ group, currentUserId, readOnly = false }: Grou
     stopTyping();
 
     try {
+      // Determinar tipo de mensagem baseado no anexo
+      let messageType = 'text';
+      if (attachments.length > 0) {
+        const firstAttachment = attachments[0];
+        const mimeType = firstAttachment.file?.type || '';
+        
+        if (mimeType.startsWith('image/')) {
+          messageType = 'image';
+        } else if (mimeType.startsWith('video/')) {
+          messageType = 'video';
+        } else if (mimeType.startsWith('audio/')) {
+          messageType = 'audio';
+        } else {
+          messageType = 'file';
+        }
+      }
+      
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .insert({
           group_id: group.id,
           from_user_id: currentUserId,
           body: newMessage.trim() || '(anexo)',
-          type: attachments.length > 0 ? 'attachment' : 'text',
+          type: messageType,
         })
         .select()
         .single();
@@ -278,6 +295,18 @@ export function GroupChatWindow({ group, currentUserId, readOnly = false }: Grou
       if (messageError) throw messageError;
 
       if (attachments.length > 0 && messageData) {
+        // Buscar o user_profiles.id do usuário atual (não o auth.uid)
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .single();
+        
+        if (!userProfile) {
+          console.error('❌ Perfil do usuário não encontrado');
+          throw new Error('Perfil do usuário não encontrado');
+        }
+        
         for (const attachment of attachments) {
           const file = attachment.file;
           const fileName = `${Date.now()}-${file.name}`;
@@ -307,7 +336,7 @@ export function GroupChatWindow({ group, currentUserId, readOnly = false }: Grou
             file_type: attachment.type,
             file_size: file.size,
             mime_type: file.type,
-            uploaded_by: currentUserId,
+            uploaded_by: userProfile.id, // ✅ Usa o user_profiles.id, não auth.uid()
           });
         }
       }

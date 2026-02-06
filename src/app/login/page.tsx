@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Shield, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
-import ShaderBackground from '@/components/ui/ShaderBackground'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -222,8 +221,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
-      <ShaderBackground />
+    <div className="min-h-screen flex relative overflow-hidden bg-gradient-to-br from-[#0f1b35] via-[#1a2847] to-[#4370d1]">
+      {/* Efeito de fundo animado leve */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_50%,rgba(67,112,209,0.3),transparent_50%)]"></div>
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_50%,rgba(15,27,53,0.5),transparent_50%)]"></div>
+      </div>
 
       {/* Lado Esquerdo - Branding e Conteúdo */}
       <div className="hidden lg:flex lg:w-1/2 relative z-10">

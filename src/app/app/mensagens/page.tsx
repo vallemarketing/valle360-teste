@@ -75,6 +75,12 @@ export default function MensagensPage() {
       finalConversationId = convId;
     }
 
+    // Garantir que temos um ID válido antes de selecionar
+    if (!finalConversationId) {
+      console.error('❌ Não foi possível obter/criar conversa');
+      return;
+    }
+
     setSelectedUser({
       id: finalConversationId,
       is_client_conversation: profile.user_type === 'client',

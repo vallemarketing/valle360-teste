@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data: clientsRows, error: clientsError } = await adminSupabase
       .from('clients')
-      .select('id,user_id,nome_fantasia,razao_social,area_atuacao,cidade,estado,whatsapp,site,cpf_cnpj,created_at')
+      .select('id,user_id,company_name,contact_name,nome_fantasia,razao_social,area_atuacao,cidade,estado,whatsapp,site,cpf_cnpj,created_at')
       .order('created_at', { ascending: false })
       .limit(500);
 
@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
       const u = usersById.get(c.user_id) || {};
       const contract = bestContractByClient.get(c.id);
 
-      const companyName = c.nome_fantasia || c.razao_social || u.company_name || u.name || u.email || 'Cliente';
-      const contactName = u.full_name || u.name || u.email || 'Contato';
+      const companyName = c.company_name || c.nome_fantasia || c.razao_social || u.full_name || u.name || u.email || 'Cliente';
+      const contactName = c.contact_name || u.full_name || u.name || u.email || 'Contato';
       const email = u.email || '';
       const phone = u.phone || c.whatsapp || '';
       const industry = c.area_atuacao || '—';

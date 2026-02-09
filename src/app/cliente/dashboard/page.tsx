@@ -141,18 +141,6 @@ export default function ClienteDashboard() {
     }
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1672d6] mx-auto" />
-          <p className="mt-4 text-[#001533]/60 dark:text-white/60">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
   const firstName = clienteData.nome.split(" ")[0];
   const kpis = summary?.kpis;
   const hasAds = !!summary?.ads?.available;
@@ -217,6 +205,18 @@ export default function ClienteDashboard() {
         : []),
     ];
   }, [hasAds, kpis?.impressions?.change, summary?.client?.segment, summary?.client?.competitors_count, summary?.insights?.available, summary?.insights?.new]);
+
+  // Loading state (hooks já foram executados acima)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1672d6] mx-auto" />
+          <p className="mt-4 text-[#001533]/60 dark:text-white/60">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto">

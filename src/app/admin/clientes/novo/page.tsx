@@ -11,6 +11,9 @@ export default function NovoClientePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+  const [showCredentials, setShowCredentials] = useState(false)
+  const [credentials, setCredentials] = useState({ email: '', password: '' })
+  const [emailSent, setEmailSent] = useState(false)
   
   // Dados do Cliente
   const [formData, setFormData] = useState({
@@ -146,82 +149,79 @@ export default function NovoClientePage() {
   }
 
   const enviarBoasVindas = async (clienteId: string, email: string, senha: string) => {
-    // Preparar email via mailto (API)
-    const emailContent = `
-      Olá ${formData.nome},
-      
-      É com enorme satisfação que damos as boas-vindas à Valle 360! 🚀
-      
-      Você está prestes a ter acesso ao portal de marketing mais avançado e inteligente 
-      do Brasil, onde tecnologia e criatividade se encontram para transformar sua 
-      marca em referência no mercado.
-      
-      🔐 Seus Dados de Acesso:
-         Email: ${email}
-         Senha Provisória: ${senha}
-         Link: ${window.location.origin}/login
-         
-      ⏰ Importante: Por segurança, você será solicitado a alterar sua senha no 
-      primeiro acesso.
-      
-      Bem-vindo à família Valle 360! 🎊
-    `
+    let emailEnviado = false
+    let emailProvider = ''
 
+    // 1. Tentar envio automático via webhook (igual ao colaborador)
     try {
-      const manualResponse = await fetch('/api/send-welcome-email', {
+      console.log('📤 Tentando enviar email de boas-vindas para cliente...')
+
+      const autoResponse = await fetch('/api/send-welcome-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           emailPessoal: email,
           emailCorporativo: email,
-          nome: formData.nome,
+          nome: formData.nome || formData.nome_fantasia || formData.razao_social,
           senha,
           tipo: 'cliente',
-          mode: 'manual',
+          mode: 'auto',
         }),
       })
 
-      const manualResult = await manualResponse.json().catch(() => null)
-      if (manualResult?.mailtoUrl) {
-        const win = window.open(manualResult.mailtoUrl, '_blank')
-        if (!win) {
-          const autoResponse = await fetch('/api/send-welcome-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              emailPessoal: email,
-              emailCorporativo: email,
-              nome: formData.nome,
-              senha,
-              tipo: 'cliente',
-              mode: 'auto',
-            }),
-          })
-          await autoResponse.json().catch(() => null)
+      const autoResult = await autoResponse.json().catch(() => null)
+      console.log('📧 Resposta do envio automático:', autoResult)
+
+      if (autoResult?.success) {
+        emailEnviado = true
+        emailProvider = autoResult.provider || 'webhook'
+        console.log(`✅ Email enviado com sucesso via ${emailProvider}`)
+      } else {
+        console.log('⚠️ Envio automático falhou, preparando fallback mailto')
+
+        // Fallback: abrir mailto
+        const subject = '🎉 Bem-vindo ao Valle 360! Seus Dados de Acesso'
+        const body = `Olá ${formData.nome || formData.nome_fantasia},\n\n🔐 Seus Dados de Acesso:\n   📧 Email: ${email}\n   🔑 Senha: ${senha}\n   🔗 ${window.location.origin}/login\n\n⚠️ Altere sua senha no primeiro acesso!`
+        const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+        try {
+          window.open(mailtoUrl, '_blank')
+        } catch {
+          // best-effort
         }
       }
     } catch (error) {
-      console.error('Erro ao enviar email:', error)
+      console.error('❌ Erro ao enviar email:', error)
     }
 
-    // Registrar envio
-    await supabase.from('email_logs').insert({
-      recipient_email: email,
-      subject: '🎉 Bem-vindo ao Valle 360!',
-      content: emailContent,
-      type: 'welcome_client',
-      related_entity_id: clienteId
-    })
-
-    // Se tiver WhatsApp, enviar também
-    if (formData.whatsapp) {
-      await supabase.from('whatsapp_logs').insert({
-        recipient_phone: formData.whatsapp,
-        message: `🎉 Bem-vindo à Valle 360!\n\n📧 Email: ${email}\n🔑 Senha: ${senha}\n🔗 ${window.location.origin}/login`,
+    // 2. Registrar envio no log (best-effort)
+    try {
+      await supabase.from('email_logs').insert({
+        recipient_email: email,
+        subject: '🎉 Bem-vindo ao Valle 360!',
+        content: `Email de boas-vindas enviado para ${email}. Provider: ${emailProvider || 'fallback'}`,
         type: 'welcome_client',
         related_entity_id: clienteId
       })
+    } catch {
+      // best-effort
     }
+
+    // 3. Registrar WhatsApp log (best-effort)
+    if (formData.whatsapp) {
+      try {
+        await supabase.from('whatsapp_logs').insert({
+          recipient_phone: formData.whatsapp,
+          message: `🎉 Bem-vindo à Valle 360!\n\n📧 Email: ${email}\n🔑 Senha: ${senha}\n🔗 ${window.location.origin}/login`,
+          type: 'welcome_client',
+          related_entity_id: clienteId
+        })
+      } catch {
+        // best-effort
+      }
+    }
+
+    return { emailEnviado, emailProvider }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,11 +299,24 @@ export default function NovoClientePage() {
         // best-effort
       }
 
-      // 6. Enviar boas-vindas
-      await enviarBoasVindas(clientData.id, formData.email, senhaProvisoria)
+      // 6. Enviar boas-vindas via webhook (igual ao colaborador)
+      let emailStatus = { emailEnviado: false, emailProvider: '' }
+      try {
+        emailStatus = await enviarBoasVindas(clientData.id, formData.email, senhaProvisoria)
+      } catch (emailErr) {
+        console.warn('Aviso: falha ao enviar boas-vindas:', emailErr)
+      }
 
-      // 7. Redirecionar
-      router.push('/admin/clientes?success=cliente_criado')
+      // 7. Mostrar credenciais ao admin
+      setCredentials({ email: formData.email, password: senhaProvisoria })
+      setEmailSent(emailStatus.emailEnviado)
+      setShowCredentials(true)
+
+      if (emailStatus.emailEnviado) {
+        toast.success(`Cliente criado! Email de boas-vindas enviado via ${emailStatus.emailProvider}`)
+      } else {
+        toast.warning('Cliente criado! Email não pôde ser enviado automaticamente. Compartilhe as credenciais manualmente.')
+      }
 
     } catch (error: any) {
       console.error('Erro ao criar cliente:', error)
@@ -1050,6 +1063,131 @@ export default function NovoClientePage() {
           </Card>
         )}
       </form>
+
+      {/* Modal de Credenciais de Login do Cliente */}
+      {showCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Cliente Criado!</h2>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
+                Abaixo estão as credenciais de acesso do cliente. Copie e compartilhe com segurança.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email de Acesso</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={credentials.email}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border rounded-lg text-gray-900 dark:text-white font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentials.email)
+                      toast.success('Email copiado!')
+                    }}
+                    className="px-3 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm font-medium shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Senha */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha Provisória</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={credentials.password}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border rounded-lg text-gray-900 dark:text-white font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentials.password)
+                      toast.success('Senha copiada!')
+                    }}
+                    className="px-3 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm font-medium shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Link de login */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link de Login</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border rounded-lg text-gray-900 dark:text-white font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/login`)
+                      toast.success('Link copiado!')
+                    }}
+                    className="px-3 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm font-medium shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Copiar tudo */}
+              <button
+                type="button"
+                onClick={() => {
+                  const text = `🔐 Dados de Acesso - Valle 360\n\n📧 Email: ${credentials.email}\n🔑 Senha: ${credentials.password}\n🔗 Login: ${window.location.origin}/login`
+                  navigator.clipboard.writeText(text)
+                  toast.success('Todos os dados copiados!')
+                }}
+                className="w-full px-4 py-3 bg-[#1672d6] text-white rounded-lg hover:bg-[#1260b5] transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                Copiar Todos os Dados
+              </button>
+            </div>
+
+            <div className="mt-6 pt-4 border-t">
+              {emailSent ? (
+                <p className="text-xs text-green-600 dark:text-green-400 text-center mb-4 flex items-center justify-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Email de boas-vindas enviado automaticamente para o cliente.
+                </p>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400 text-center mb-4 flex items-center justify-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Email não pôde ser enviado automaticamente. Compartilhe as credenciais manualmente usando os botões acima.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => router.push('/admin/clientes?success=cliente_criado')}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Ir para Lista de Clientes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

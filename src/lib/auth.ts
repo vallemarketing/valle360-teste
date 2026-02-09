@@ -56,11 +56,11 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     .single();
 
   if (profileData) {
-    // Normalizar 'employee' para 'colaborador' para compatibilidade
-    let role = (profileData.user_type || profileData.role) as UserRole;
-    if (role === 'employee') {
-      role = 'colaborador';
-    }
+    // Normalizar roles (mantemos o app em PT-BR)
+    let roleRaw = String(profileData.user_type || profileData.role || '');
+    if (roleRaw === 'employee') roleRaw = 'colaborador';
+    if (roleRaw === 'client') roleRaw = 'cliente';
+    let role = (roleRaw || 'cliente') as UserRole;
     // Segurança: nunca “promover” para super_admin por ausência de role.
     // Se não houver role definido, caímos no mais restrito.
     if (!role) role = 'cliente';
@@ -81,11 +81,11 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     .single();
 
   if (userData) {
-    // Normalizar 'employee' para 'colaborador' para compatibilidade
-    let role = (userData.user_type || userData.role) as UserRole;
-    if (role === 'employee') {
-      role = 'colaborador';
-    }
+    // Normalizar roles (mantemos o app em PT-BR)
+    let roleRaw = String(userData.user_type || userData.role || '');
+    if (roleRaw === 'employee') roleRaw = 'colaborador';
+    if (roleRaw === 'client') roleRaw = 'cliente';
+    let role = (roleRaw || 'cliente') as UserRole;
     if (!role) role = 'cliente';
     const finalUserData = {
       id: user.id,
@@ -97,11 +97,13 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 
   // Último fallback: usar metadata (nunca “promover” por e-mail)
+  const metadataRoleRaw = String(user.user_metadata?.role || '');
+  const metadataRole = metadataRoleRaw === 'client' ? 'cliente' : metadataRoleRaw;
   const fallbackData = {
     id: user.id,
     email: user.email!,
     name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-    role: (user.user_metadata?.role as UserRole) || 'cliente'
+    role: (metadataRole as UserRole) || 'cliente'
   };
   return fallbackData;
 }

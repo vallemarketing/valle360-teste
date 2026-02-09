@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
       email_confirm: true,
       user_metadata: {
         full_name: full_name || company_name || nome_fantasia || razao_social || email,
-        user_type: 'client',
+        // padronizar PT-BR no app
+        user_type: 'cliente',
+        role: 'cliente',
       },
     });
 
@@ -95,7 +97,9 @@ export async function POST(request: NextRequest) {
       full_name: full_name || company_name || nome_fantasia || razao_social || email,
       name: full_name || company_name || nome_fantasia || razao_social || email,
       phone: phone || whatsapp || null,
-      user_type: 'client',
+      // padronizar PT-BR no app
+      user_type: 'cliente',
+      role: 'cliente',
       account_status: 'active',
       created_by: actorUserId,
       created_at: new Date().toISOString(),
@@ -107,8 +111,9 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       email,
       full_name: full_name || company_name || nome_fantasia || razao_social || email,
-      user_type: 'client',
-      role: 'client',
+      // padronizar PT-BR no app
+      user_type: 'cliente',
+      role: 'cliente',
       is_active: true,
       metadata: { plan_id: plan_id || null },
     });

@@ -127,24 +127,71 @@ export default function LoginPage() {
         return
       }
 
-      // Buscar dados nas duas tabelas (users é mais confiável para colaboradores)
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+      const authUserId = data.user.id
 
+      // PRIORIDADE: usar o tipo do próprio Auth (evita depender de RLS/tabelas)
+      // create-client define user_metadata.user_type para clientes
+      const metaUserTypeRaw = String((data.user as any)?.user_metadata?.user_type || (data.user as any)?.user_metadata?.role || '')
+      const metaUserType = metaUserTypeRaw.toLowerCase()
+      if (metaUserType === 'client' || metaUserType === 'cliente') {
+        console.log('Redirecionando para /cliente/dashboard (via user_metadata.user_type)')
+        router.push('/cliente/dashboard')
+        return
+      }
+      if (metaUserType === 'employee' || metaUserType === 'colaborador') {
+        console.log('Redirecionando para /colaborador/dashboard (via user_metadata.user_type)')
+        router.push('/colaborador/dashboard')
+        return
+      }
+      if (metaUserType === 'super_admin') {
+        console.log('Redirecionando para /admin/dashboard (via user_metadata.user_type)')
+        router.push('/admin/dashboard')
+        return
+      }
+
+      // Buscar perfil/role (não quebrar se faltar dados)
       const { data: profileData } = await supabase
         .from('user_profiles')
         .select('user_type, role')
-        .eq('user_id', data.user.id)
-        .single()
+        .eq('user_id', authUserId)
+        .maybeSingle()
 
-      const { data: employeeData } = await supabase
-        .from('employees')
-        .select('role, area')
-        .eq('user_id', data.user.id)
-        .single()
+      const isClient =
+        profileData?.user_type === 'client' ||
+        profileData?.user_type === 'cliente' ||
+        profileData?.role === 'client' ||
+        profileData?.role === 'cliente'
+
+      // Se a base diz que é cliente, não tem por que olhar employees/users.role
+      if (isClient) {
+        console.log('Redirecionando para /cliente/dashboard (via user_profiles)')
+        router.push('/cliente/dashboard')
+        return
+      }
+
+      // Buscar employees apenas se não for cliente (evita ruído 406 no console/network)
+      let employeeData: any = null
+      if (!isClient) {
+        const employeeRes = await supabase
+          .from('employees')
+          .select('role, area')
+          .eq('user_id', authUserId)
+          .maybeSingle()
+        if (!employeeRes.error) employeeData = employeeRes.data
+      }
+
+      // Buscar users (legacy) — pode falhar em ambientes onde 'role' não existe; não bloqueia login.
+      let userData: any = null
+      try {
+        const res = await supabase
+          .from('users')
+          .select('role,user_type')
+          .eq('id', authUserId)
+          .maybeSingle()
+        if (!res.error) userData = res.data
+      } catch {
+        // best-effort
+      }
 
       // Debug opcional: se precisar, habilitar via env no futuro.
 

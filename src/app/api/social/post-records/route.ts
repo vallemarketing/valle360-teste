@@ -27,7 +27,20 @@ export async function POST(request: NextRequest) {
     const collaborators = body?.collaborators ?? body?.colaboradores ?? null;
     const post_type = String(body?.post_type || body?.type || 'image');
     const scheduled_at = body?.scheduled_at || body?.scheduledAt || null;
+    
+    // Extrair data e horario separados
+    const data = body?.data || null;
+    const horario = body?.horario || null;
+    
     const media_urls = Array.isArray(body?.media_urls) ? body.media_urls : Array.isArray(body?.mediaUrls) ? body.mediaUrls : [];
+    
+    // Extrair URLs específicas por tipo
+    const url_imagem = body?.url_imagem || null;
+    const url_video = body?.url_video || null;
+    const url_carrossel = body?.url_carrossel || null;
+    const carrossel_type = body?.carrossel_type || null;
+    const cover_imagem = body?.cover_imagem || null;
+    
     const backend = String(body?.backend || 'instagramback');
     const platforms = coerceTextArray(body?.platforms);
     const channels = body?.channels || [];
@@ -40,11 +53,11 @@ export async function POST(request: NextRequest) {
       ? 'draft'
       : approval_status === 'pending'
         ? 'pending_approval'
-        : scheduled_at
+        : (scheduled_at || data)
           ? 'scheduled'
           : 'ready';
 
-    const { data, error } = await supabase
+    const { data: insertedData, error } = await supabase
       .from('instagram_posts')
       .insert({
         external_id: null,
@@ -54,7 +67,14 @@ export async function POST(request: NextRequest) {
         collaborators,
         status,
         scheduled_at,
+        data,
+        horario,
         media_urls,
+        url_imagem,
+        url_video,
+        url_carrossel,
+        carrossel_type,
+        cover_imagem,
         created_by: access.userId,
         raw_payload: { ...body, _source: 'post-records' },
         platforms,
@@ -77,7 +97,7 @@ export async function POST(request: NextRequest) {
           message: 'Um post foi enviado para aprovação na Central de Agendar Postagem.',
           link: '/app/social-media/upload',
           type: 'workflow',
-          metadata: { post_id: data.id, client_id, backend },
+          metadata: { post_id: insertedData.id, client_id, backend },
         });
       }
       if (boost_requested) {
@@ -87,14 +107,14 @@ export async function POST(request: NextRequest) {
           message: 'Um post foi marcado para impulsionar.',
           link: '/app/social-media/upload',
           type: 'workflow',
-          metadata: { post_id: data.id, client_id, backend },
+          metadata: { post_id: insertedData.id, client_id, backend },
         });
       }
     } catch {
       // ignore
     }
 
-    return NextResponse.json({ success: true, post: data });
+    return NextResponse.json({ success: true, post: insertedData });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Erro interno' }, { status: 500 });
   }

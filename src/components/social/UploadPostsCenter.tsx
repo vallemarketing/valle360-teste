@@ -90,6 +90,8 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
   // etapa 1..5
   const [postType, setPostType] = useState<PostType>('image');
   const [files, setFiles] = useState<File[]>([]);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string>('');
   const [caption, setCaption] = useState('');
   const [collaborators, setCollaborators] = useState('');
   const [scheduledDate, setScheduledDate] = useState(''); // yyyy-mm-dd
@@ -137,15 +139,16 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
     };
   }, [localPreviews]);
 
-  const mediaAccept = postType === 'video' ? 'video/*' : 'image/*';
+  const mediaAccept = postType === 'video' ? 'video/*' : postType === 'carousel' ? 'image/*,video/*' : 'image/*';
   const allowMultiple = postType === 'carousel';
 
   function onSelectFiles(list: FileList | null) {
     if (!list) return;
     const arr = Array.from(list);
     if (postType === 'carousel') {
-      const imgs = arr.filter((f) => f.type.startsWith('image/')).slice(0, 10);
-      setFiles(imgs);
+      // Aceitar imagens E vídeos no carrossel (mas todos do mesmo tipo)
+      const media = arr.filter((f) => f.type.startsWith('image/') || f.type.startsWith('video/')).slice(0, 10);
+      setFiles(media);
       return;
     }
     setFiles(arr.slice(0, 1));
@@ -157,11 +160,14 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
     try {
       const r = await fetch('/api/social/clients', { cache: 'no-store' });
       const j = await r.json();
+      console.log('Resposta clientes:', j);
       if (!r.ok) throw new Error(j?.error || 'Falha ao carregar clientes');
       const list: ClientRow[] = Array.isArray(j?.clients) ? j.clients : [];
+      console.log('Clientes carregados:', list);
       setClients(list);
       if (!selectedClientId && list[0]?.id) setSelectedClientId(String(list[0].id));
     } catch (e: any) {
+      console.error('Erro ao carregar clientes:', e);
       setError(e?.message || 'Erro ao carregar clientes');
     } finally {
       setClientsLoading(false);
@@ -233,7 +239,7 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
 
   function validateBase(params: { needsMedia: boolean; needsSchedule: boolean }) {
     if (!selectedClientId) return 'Selecione um perfil (cliente).';
-    if (selectedChannels.length === 0) return 'Selecione ao menos um canal.';
+    // if (selectedChannels.length === 0) return 'Selecione ao menos um canal.';
     if (params.needsMedia && uploadedUrls.length === 0) return 'Envie a mídia (Storage) antes de continuar.';
     if (params.needsSchedule) {
       if (!scheduledDate || !scheduledTime) return 'Informe data e horário.';
@@ -290,6 +296,26 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
       }
 
       setUploadedUrls(urls);
+      
+      // Upload da capa (se houver) para carrossel de vídeo
+      if (coverFile && postType === 'carousel') {
+        const coverObjectName = `${ts}_cover_${Math.random().toString(36).slice(2, 8)}_${safeObjectName(coverFile.name)}`;
+        const coverPath = `${baseFolder}/${coverObjectName}`;
+        
+        const { error: coverUploadError } = await supabase.storage.from(bucket).upload(coverPath, coverFile, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: coverFile.type || undefined,
+        });
+        
+        if (!coverUploadError) {
+          const { data: coverPub } = supabase.storage.from(bucket).getPublicUrl(coverPath);
+          if (coverPub?.publicUrl) {
+            setCoverUrl(coverPub.publicUrl);
+          }
+        }
+      }
+      
       setHint('Upload concluído (Supabase Storage). URLs prontas para postar.');
     } catch (e: any) {
       setError(e?.message || 'Falha no upload');
@@ -303,6 +329,21 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
     if (postType === 'image') legacy.urlimagem = uploadedUrls[0] || null;
     if (postType === 'video') legacy.urlvideo = uploadedUrls[0] || null;
     if (postType === 'carousel') legacy.carrossel = uploadedUrls.join(',');
+    
+    // URLs específicas por tipo
+    const url_imagem = postType === 'image' ? uploadedUrls[0] || null : null;
+    const url_video = postType === 'video' ? uploadedUrls[0] || null : null;
+    const url_carrossel = postType === 'carousel' ? uploadedUrls : null;
+    
+    // Detectar tipo do carrossel baseado no primeiro arquivo
+    let carrossel_type = null;
+    if (postType === 'carousel' && files.length > 0) {
+      carrossel_type = files[0].type.startsWith('video/') ? 'video' : 'image';
+    }
+    
+    // Usar coverUrl se houver, senão primeira URL do carrossel
+    const cover_imagem = coverUrl || (postType === 'carousel' && uploadedUrls.length > 0 ? uploadedUrls[0] : null);
+    
     return {
       client_id: selectedClientId || null,
       post_type: postType,
@@ -313,8 +354,15 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
       colaboradores: collaborators,
       scheduled_at: toIso(scheduledDate, scheduledTime),
       scheduledAt: toIso(scheduledDate, scheduledTime),
+      data: scheduledDate || null,
+      horario: scheduledTime ? `${scheduledTime}:00` : null,
       media_urls: uploadedUrls,
       mediaUrls: uploadedUrls,
+      url_imagem,
+      url_video,
+      url_carrossel,
+      carrossel_type,
+      cover_imagem,
       platforms: selectedChannels.map((c) => String(c.platform)),
       channels: selectedChannels,
       backend,
@@ -370,7 +418,7 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
         if (!r.ok) throw new Error(j?.error || 'Falha ao enviar para aprovação');
         setHint('Enviado para aprovação.');
       } else {
-        // publicar/agendar
+        // publicar/agendar - SALVAR DIRETO NO BANCO
         const scheduledAt = action === 'schedule' ? toIso(scheduledDate, scheduledTime) : null;
         const payload = basePayload({
           scheduled_at: scheduledAt,
@@ -381,25 +429,15 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
           mode: action === 'schedule' ? 'schedule' : 'publish_now',
         });
 
-        if (backend === 'instagramback') {
-          const r = await fetch('/api/social/instagramback/posts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const j = await r.json();
-          if (!r.ok) throw new Error(j?.error || 'Falha ao criar post');
-          setHint(action === 'schedule' ? 'Post agendado (InstagramBack).' : 'Post enviado (InstagramBack).');
-        } else {
-          const r = await fetch('/api/social/meta/posts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const j = await r.json();
-          if (!r.ok) throw new Error(j?.error || 'Falha ao publicar via Meta');
-          setHint(action === 'schedule' ? 'Post agendado (Meta).' : 'Post publicado (Meta).');
-        }
+        // Salvar direto no banco via post-records
+        const r = await fetch('/api/social/post-records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error || 'Falha ao salvar post');
+        setHint(action === 'schedule' ? 'Post agendado com sucesso!' : 'Post salvo com sucesso!');
       }
 
       // reset leve (mantém tipo)
@@ -828,6 +866,28 @@ export default function UploadPostsCenter(props: { title: string; backHref?: str
                     </div>
                   )}
                 </div>
+
+                {/* Campo de capa para carrossel de vídeo */}
+                {postType === 'carousel' && files.length > 0 && files[0].type.startsWith('video/') && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <label className="text-sm font-medium text-gray-700">Imagem de capa do carrossel</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setCoverFile(file);
+                      }}
+                      className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-valle-blue-50 file:text-valle-blue-700 hover:file:bg-valle-blue-100"
+                    />
+                    {coverFile && (
+                      <p className="text-xs text-green-600">✓ Capa selecionada: {coverFile.name}</p>
+                    )}
+                    {coverUrl && (
+                      <p className="text-xs text-green-600">✓ Capa enviada! <a href={coverUrl} target="_blank" rel="noreferrer" className="underline">Ver</a></p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

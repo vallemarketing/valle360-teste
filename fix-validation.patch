@@ -1,0 +1,17 @@
+--- a/src/components/social/UploadPostsCenter.tsx
++++ b/src/components/social/UploadPostsCenter.tsx
+@@ -233,13 +233,7 @@ export default function UploadPostsCenter(props: { title: string; backHref?: st
+ 
+   function validateBase(params: { needsMedia: boolean; needsSchedule: boolean }) {
+     if (!selectedClientId) return 'Selecione um perfil (cliente).';
+-    if (selectedChannels.length === 0) return 'Selecione ao menos um canal.';
+     if (params.needsMedia && uploadedUrls.length === 0) return 'Envie a mídia (Storage) antes de continuar.';
+     if (params.needsSchedule) {
+       if (!scheduledDate || !scheduledTime) return 'Informe data e horário.';
+     }
+-    if (backend === 'instagramback') {
+-      // hoje: InstagramBack é focado em Instagram
+-      const nonIg = selectedChannels.some((c) => c.platform !== 'instagram');
+-      if (nonIg) return 'Para canais além de Instagram, selecione o backend "Meta (OAuth)".';
+-    }
+     return null;
